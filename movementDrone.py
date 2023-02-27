@@ -69,10 +69,10 @@ def set_velocity_body(vehicle, vx, vy, vz):
 def get_speed(current_pos):
     if (current_pos > 0):
         # for positive x value (right)
-        return -0.125(current_pos-2)^2 + 0.5
+        return -0.125 * (current_pos - 2)**2 + 0.5
     else:
         # for negative x value (left)
-        return 0.125(current_pos-2)^2 - 0.5
+        return 0.125 * (current_pos - 2)**2 - 0.5
 
 # Give the drone velocity vector. This function should be called every new x and y value is inputted from aruco detector
 def gerakDrone(x, y):
