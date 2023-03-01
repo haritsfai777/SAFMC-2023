@@ -15,11 +15,17 @@ vehicle = connect('udp:127.0.0.1:14551')
 #-- Setup the commanded flying speed
 gnd_speed = 0.5 # [m/s]
 
+#-- Setup decelerating distance
+dec_dist = 2 # [m]
+
+#-- Setup tolerating distance
+tol_dist = 0.075 # [m]
+
 #-- Define arm and takeoff
 def arm_and_takeoff(altitude):
 
    while not vehicle.is_armable:
-      print("waiting to be armable")
+      print("Waiting to be armable")
       time.sleep(1)
 
    print("Arming motors")
@@ -65,29 +71,43 @@ def set_velocity_body(vehicle, vx, vy, vz):
     vehicle.send_mavlink(msg)
     vehicle.flush()
     
-# Get speed for decelaring
+# Get speed based on current distance to the target aruco marker
 def get_speed(current_pos):
-    if (current_pos > 0):
-        # for positive x value (right)
-        return -0.125 * (current_pos - 2)**2 + 0.5
+    # Here, we have the decelerating distance (distance where the drone have to start decelerating), and we use 
+    # quadratic function to project the drone velocity based on the distance
+    
+    # Check if current position is not less than decelerating distance
+    if (abs(current_pos) >= dec_dist):
+        # Give velocity of maximum ground speed
+        return gnd_speed * current_pos / abs(current_pos)
     else:
-        # for negative x value (left)
-        return 0.125 * (current_pos - 2)**2 - 0.5
+        # Use the quadratic function
+
+        # Check if there is still a distance.
+        if (abs(current_pos) > 0):
+            # Give the quadratic results
+            return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
+        else:
+            # Give zero velocity
+            return 0
+
 
 # Give the drone velocity vector. This function should be called every new x and y value is inputted from aruco detector
 def gerakDrone(x, y):
-    # First, we check the current x position relative to the aruco and move in the x axis based on that position
-    # Here, we set x = 2 m as decelerating threshold
-    if (abs(x) >= 2):
-        set_velocity_body(vehicle, gnd_speed * x / abs(x), 0, 0)
-    else:
+    print(f"Target Position: ({x}, {y})")
+
+    # Check x distance
+    if (abs(x) >= 0):
+        # Set vx
+        print(f"vx = {get_speed(x)}")
         set_velocity_body(vehicle, get_speed(x), 0, 0)
 
-        # Here, we set x = 0.1 as x position tolerance before the drone starts moving in y direction
-        if(abs(x) > 0.1):
-            if(abs(y) >= 2):
-                set_velocity_body(vehicle, 0, gnd_speed * y / abs(y), 0)
-            else:
+        # Check if has reached tolerating distance for drone to move in y direction
+        if(abs(x) < tol_dist):
+            # Check y distance
+            if(abs(y) >= 0):
+                # Set vy
+                print(f"vy = {get_speed(y)}")
                 set_velocity_body(vehicle, 0, get_speed(y), 0)
 
 # Used only if x and y position is not detected, manually set the direction based on command from the previous aruco marker
@@ -100,6 +120,22 @@ def gerakDroneEmergency(string):
         set_velocity_body(vehicle, gnd_speed, 0, 0)
     elif string == "LEFT":
         set_velocity_body(vehicle, -gnd_speed, 0, 0)
+
+# Run this when "UP" command is received
+def modeDrop(altitude):
+    print("Last Aruco Reached")
+    set_velocity_body(vehicle, 0, 0, 0)
+
+    print("Taking Off...")
+    vehicle.simple_takeoff(altitude)
+
+    while True:
+        v_alt = vehicle.location.global_relative_frame.alt
+        print(">> Altitude = %.1f m"%v_alt)
+        if v_alt >= altitude - 1.0:
+            print("Target altitude reached")
+            break
+        time.sleep(1)
     
 #---- MAIN FUNCTION
 #- Takeoff
