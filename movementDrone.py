@@ -169,12 +169,20 @@ def get_speed(current_pos):
     quadratic function to project the drone velocity based on the distance
     """
     # Check if current position is not less than decelerating distance
-    if (abs(current_pos) >= dec_dist):
+    if (current_pos > 0):
         # Give velocity of maximum ground speed
-        return gnd_speed * current_pos / abs(current_pos)
-    else:
-        # Use the quadratic function
-        return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
+        gnd_speed * abs(current_pos) / current_pos
+        if (abs(current_pos) <= tol_dist):
+            # Use the quadratic function
+            return -0.125 * (current_pos - 2)**2 + 0.5
+        else:
+            return 0
+    elif (current_pos < 0):
+        gnd_speed * current_pos / abs(current_pos)
+        if (abs(current_pos) <= tol_dist):
+            return -0.125 * (current_pos + 2)**2 + 0.5
+        else:
+            return 0
 
 def gerakDrone(x, y):
     """
