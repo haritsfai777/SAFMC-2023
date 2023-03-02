@@ -200,6 +200,8 @@ def gerakDrone(x, y):
             # Check y distance
             if(abs(y) >= 0):
                 # Set vy
+                print("gerak y")
+
                 print(f"vy = {get_speed(y)}")
                 set_velocity_body(vehicle, 0, get_speed(y), 0)
                 set_velocity_body(vehicle_slave, 0, get_speed(y), 0)
@@ -249,23 +251,23 @@ i = 10
 j = 10
 k = 0
 
-while (i >= 0 and j >= 0):
-    print(f"i = {i}, j = {j}, k = {k}")
+while (i >= -0.000005 and j >= -0.000005):
+    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
 
-    gerakDrone(i, j)
+    gerakDrone(round(i, 2), round(j, 2))
 
     if (i > 0):
-        i = i - 1
+        i = round(i, 2) - 0.05
     else:
         if (j > 0):
-            j = j - 1
+            print("move y")
+            j = round(j, 2) - 0.05
     
-    if (i == 0 and j == 0):
+    if (round(i, 2) == 0 and round(j, 2) == 0):
         gerakDrone(0, 0)
 
-        # k = k + 1
+        print("Kelar")
 
-        if (k == 10):
-            break
+        break
     
-    time.sleep(2)
+    time.sleep(0.1)
