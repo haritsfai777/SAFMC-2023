@@ -10,10 +10,10 @@ from pymavlink import mavutil
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
-vehicle = connect('udp:127.0.0.1:14560')
+vehicle = connect('udp:127.0.0.1:14561')
 
 print('Connecting Slave Drone...')
-vehicle_slave = connect('udp:127.0.0.1:14570')
+vehicle_slave = connect('udp:127.0.0.1:14571')
 
 #-- Setup the commanded flying speed
 gnd_speed = 0.5 # [m/s]
@@ -169,12 +169,15 @@ def get_speed(current_pos):
     quadratic function to project the drone velocity based on the distance
     """
     # Check if current position is not less than decelerating distance
-    if (abs(current_pos) >= dec_dist):
-        # Give velocity of maximum ground speed
-        return gnd_speed * current_pos / abs(current_pos)
+    if (current_pos != 0):
+        if (abs(current_pos) >= dec_dist):
+            # Give velocity of maximum ground speed
+            return gnd_speed * current_pos / abs(current_pos)
+        else:
+            # Use the quadratic function
+            return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
     else:
-        # Use the quadratic function
-        return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
+        return 0
 
 def gerakDrone(x, y):
     """
@@ -242,8 +245,16 @@ def modeDrop(altitude_top, altitude_bot):
 #- Takeoff
 arm_and_takeoff(10)
 
-i = 10
-j = 10
+set_velocity_body(vehicle_slave, get_speed(5), 0, 0)
+
+time.sleep(2)
+
+set_velocity_body(vehicle_slave, 0, 0, 0)
+
+time.sleep(5)
+
+i = 4
+j = 4
 k = 0
 
 while (i >= -0.000005 and j >= -0.000005):
@@ -259,7 +270,63 @@ while (i >= -0.000005 and j >= -0.000005):
             j = round(j, 2) - 0.05
     
     if (round(i, 2) == 0 and round(j, 2) == 0):
-        gerakDrone(0, 0)
+        for k in range (0, 10):
+            gerakDrone(0, 0)
+            time.sleep(0.1)
+
+        print("Kelar")
+
+        break
+    
+    time.sleep(0.1)
+
+i = -2
+j = -5
+k = 0
+
+while (i <= 0.000005 and j <= -0.000005):
+    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
+
+    gerakDrone(round(i, 2), round(j, 2))
+
+    if (i < 0):
+        i = round(i, 2) + 0.05
+    else:
+        if (j < 0):
+            print("move y")
+            j = round(j, 2) + 0.05
+    
+    if (round(i, 2) == 0 and round(j, 2) == 0):
+        for k in range (0, 10):
+            gerakDrone(0, 0)
+            time.sleep(0.1)
+
+        print("Kelar")
+
+        break
+    
+    time.sleep(0.1)
+
+i = 2
+j = -4
+k = 0
+
+while (i <= 0.000005 and j <= -0.000005):
+    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
+
+    gerakDrone(round(i, 2), round(j, 2))
+
+    if (i < 0):
+        i = round(i, 2) + 0.05
+    else:
+        if (j < 0):
+            print("move y")
+            j = round(j, 2) + 0.05
+    
+    if (round(i, 2) == 0 and round(j, 2) == 0):
+        for k in range (0, 10):
+            gerakDrone(0, 0)
+            time.sleep(0.1)
 
         print("Kelar")
 
