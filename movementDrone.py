@@ -161,53 +161,46 @@ def condition_yaw(target_vehicle, heading, relative=True):
     # send command to vehicle
     target_vehicle.send_mavlink(msg)
 
-# Get speed based on current distance to the target aruco marker
 def get_speed(current_pos):
-    # Here, we have the decelerating distance (distance where the drone have to start decelerating), and we use 
-    # quadratic function to project the drone velocity based on the distance
-    
+    """
+    Get speed based on current distance to the target aruco marker
+
+    Here, we have the decelerating distance (distance where the drone have to start decelerating), and we use 
+    quadratic function to project the drone velocity based on the distance
+    """
     # Check if current position is not less than decelerating distance
     if (abs(current_pos) >= dec_dist):
         # Give velocity of maximum ground speed
         return gnd_speed * current_pos / abs(current_pos)
     else:
         # Use the quadratic function
+        return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
 
-        # Check if there is still a distance.
-        if (abs(current_pos) > 0):
-            # Give the quadratic results
-            return (gnd_speed - (gnd_speed / dec_dist**2) * (abs(current_pos) - dec_dist)**2) * current_pos / abs(current_pos)
-        else:
-            # Give zero velocity
-            return 0
-
-# Give the drone velocity vector. This function should be called every new x and y value is inputted from aruco detector
 def gerakDrone(x, y):
+    """
+    Give the drone velocity vector. This function should be called every new x and y value is inputted from aruco detector
+    """
     condition_yaw(vehicle, heading=0)
     condition_yaw(vehicle_slave, heading=0)
 
     print(f"Target Position: ({x}, {y})")
 
-    # Check x distance
-    if (abs(x) >= 0):
-        # Set vx
-        print(f"vx = {get_speed(x)}")
-        set_velocity_body(vehicle, get_speed(x), 0, 0)
-        set_velocity_body(vehicle_slave, get_speed(x), 0, 0)
+    # Set vx
+    print(f"vx = {get_speed(x)}")
+    set_velocity_body(vehicle, get_speed(x), 0, 0)
+    set_velocity_body(vehicle_slave, get_speed(x), 0, 0)
 
-        # Check if has reached tolerating distance for drone to move in y direction
-        if(abs(x) < tol_dist):
-            # Check y distance
-            if(abs(y) >= 0):
-                # Set vy
-                print("gerak y")
+    # Check if has reached tolerating distance for drone to move in y direction
+    if(abs(x) < tol_dist):
+        # Set vy
+        print(f"vy = {get_speed(y)}")
+        set_velocity_body(vehicle, 0, get_speed(y), 0)
+        set_velocity_body(vehicle_slave, 0, get_speed(y), 0)
 
-                print(f"vy = {get_speed(y)}")
-                set_velocity_body(vehicle, 0, get_speed(y), 0)
-                set_velocity_body(vehicle_slave, 0, get_speed(y), 0)
-
-# Used only if x and y position is not detected, manually set the direction based on command from the previous aruco marker
 def gerakDroneEmergency(string):
+    """
+    Used only if x and y position is not detected, manually set the direction based on command from the previous aruco marker
+    """
     condition_yaw(vehicle, 0)
     condition_yaw(vehicle_slave, 0)
 
@@ -224,8 +217,10 @@ def gerakDroneEmergency(string):
         set_velocity_body(vehicle, -gnd_speed, 0, 0)
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
 
-# Run this when "UP" command is received
 def modeDrop(altitude_top, altitude_bot):
+    """
+    Run this when "UP" command is received
+    """
     print("Last Aruco Reached")
     set_velocity_body(vehicle, 0, 0, 0)
     set_velocity_body(vehicle_slave, 0, 0, 0)
@@ -271,3 +266,5 @@ while (i >= -0.000005 and j >= -0.000005):
         break
     
     time.sleep(0.1)
+
+print("Finished")
