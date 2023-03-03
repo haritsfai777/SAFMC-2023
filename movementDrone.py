@@ -259,9 +259,9 @@ def is_internet():
 #Wifi link cutoff emergency stop
 def wifi_stop():
     if is_internet():
-        
+        #continue drone program
     else:
-
+        #internet detected cutoff then stop
 
     
 #---- MAIN FUNCTION
