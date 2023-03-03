@@ -4,6 +4,8 @@ Script to move drone based on aruco
 
 
 import time, math
+import urllib
+from urllib.request import urlopen
 from dronekit import connect, VehicleMode, LocationGlobalRelative, Command, LocationGlobal
 from pymavlink import mavutil
 
@@ -245,6 +247,27 @@ def modeDrop(altitude_top, altitude_bot):
             print("Target altitude reached")
             break
         time.sleep(1)
+
+#Detect wifi using url
+def is_internet():
+    """
+    Query internet using python
+    :return:
+    """
+    try:
+        urlopen('https://www.google.com', timeout=1)
+        return True
+    except urllib.error.URLError as Error:
+        print(Error)
+        return False
+
+#Wifi link cutoff emergency stop
+def wifi_stop():
+    if is_internet():
+        
+    else:
+
+
     
 #---- MAIN FUNCTION
 #- Takeoff
