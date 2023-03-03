@@ -8,7 +8,7 @@ import urllib
 from urllib.request import urlopen
 from dronekit import connect, VehicleMode, LocationGlobalRelative, Command, LocationGlobal
 from pymavlink import mavutil
-
+import threading
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
@@ -252,19 +252,31 @@ def is_internet():
     try:
         urlopen('https://www.google.com', timeout=1)
         return True
-    except urllib.error.URLError as Error:
-        print(Error)
+    except:
         return False
 
 #Wifi link cutoff emergency stop
 def wifi_stop():
-    if is_internet():
-        #continue drone program
-    else:
-        #internet detected cutoff then stop
+    """
+    Stop the drone (or rather the motor of drone) when wifi is disconnected
+    """
 
+    # Check wifi connection
+    while is_internet():
+        print("Connected")
     
+    print("Disconnected")
+
+    # Stop the vehicle
+    vehicle.close()
+    vehicle_slave.close()
+    # NOT DONE, NEED TO BE IMPROVED
+
 #---- MAIN FUNCTION
+#- Check wifi thread
+check_wifi = threading.Thread(target=wifi_stop)
+check_wifi.start()
+
 #- Takeoff
 arm_and_takeoff(10)
 
