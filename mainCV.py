@@ -29,7 +29,7 @@ def arucoFollower():
     # Untuk testing, jangan lupa diganti dengan yang di bawah
     lastId = 0
 
-    # lastId = 2
+    # lastId = 45
     bannedId = []
 
     # Declare RealSense pipeline, encapsulating the actual device and sensors
@@ -106,12 +106,12 @@ def arucoFollower():
           else :
             modeDrop(2,3)
             print("Up")
+            time.sleep(2)
             command = "UP"
 
     finally:
       print("Dropping drone...")
-      modeDrop(0,0)
-      # modeDrop2(-2.4,-0.9)
+      modeDrop(0,0) # landing jika sudah selesai ataupun jika keyboard interrupt
       print("Selesai")
       pipe.stop()
 
