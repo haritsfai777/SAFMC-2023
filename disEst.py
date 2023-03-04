@@ -129,7 +129,7 @@ def poseEstim(currId, bannedId, IdDistArr, streams, isNewId):
     K_left  = camera_matrix(intrinsics["left"])
     D_left  = fisheye_distortion(intrinsics["left"])
 
-    MARKER_SIZE = 17  # centimeters
+    MARKER_SIZE = 28  # centimeters
     marker_dict = aruco.Dictionary_get(aruco.DICT_6X6_50) # Aruco type
     param_markers = aruco.DetectorParameters_create()
 

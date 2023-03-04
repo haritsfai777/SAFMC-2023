@@ -1,9 +1,11 @@
 # First import the library
 from disEst import poseEstim, callback
 import pyrealsense2 as rs
+from movementDrone import *
+# from dronewifi import *
 
 def threshold(x,y):
-	if (abs(x) <= 5 and abs(y) <= 5):
+	if (abs(x) <= 10 and abs(y) <= 10):
 		return True
 
 def changeId(idDistArr, currId):
@@ -74,20 +76,25 @@ def arucoFollower():
           currId = newId
 
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
+        gerakDrone(x*0.01, -y*0.01)
 
+      print("Selesai rute awal, memulai rute penurunan payload")
       print("Switching to final markers")
       # Second loop from special dictionary command last special id
       # Loop the id with increment
 
       # untuk testing jangan lupa nanti diganti dengan yang dicomment di bawah
-      currId = 1 # First id of special command 
-      lastIdSp = 2 # Last id of special command
+      currId = 48 # First id of special command 
+      lastIdSp = 49 # Last id of special command
 
-      # currId = 100 # First id of special command 
-      # lastIdSp = 104 # Last id of special command
-      while (True):
+      # currId = 46 # First id of special command 
+      # lastIdSp = 49 # Last id of special command
+ 
+      modeDrop(3,2.5) # Naik untuk persiapan pelepasan payload
+      while (command != "UP"):
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
-
+        gerakDrone(x*0.01, -y*0.01)
+        
         # Cek threshold
         if threshold(x,y):
           # Jika id yang sekarang bukan id terakhir
@@ -97,12 +104,21 @@ def arucoFollower():
           
           # jika id yang sekarang adalah id terakhir, maka commandnya hanya UP
           else :
+            modeDrop(2,3)
             print("Up")
             command = "UP"
 
     finally:
+      print("Dropping drone...")
+      modeDrop(0,0)
+      # modeDrop2(-2.4,-0.9)
       print("Selesai")
       pipe.stop()
 
+# Main function
 if __name__ == "__main__":
-	arucoFollower()
+  check_wifi = threading.Thread(target=wifi_stop)
+  check_wifi.start()
+  arm_and_takeoff(2, 1.5)
+  arucoFollower()
+  check_wifi.join()
