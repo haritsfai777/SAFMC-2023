@@ -194,15 +194,15 @@ def gerakDrone(x, y):
 
     # Set vx
     print(f"vx = {get_speed(x)}")
-    set_velocity_body(vehicle, get_speed(x), 0, 0)
-    set_velocity_body(vehicle_slave, get_speed(x), 0, 0)
+    set_velocity_body(vehicle, 0, get_speed(x), 0)
+    set_velocity_body(vehicle_slave, 0, get_speed(x), 0)
 
     # Check if has reached tolerating distance for drone to move in y direction
     if(abs(x) < tol_dist):
         # Set vy
         print(f"vy = {get_speed(y)}")
-        set_velocity_body(vehicle, 0, get_speed(y), 0)
-        set_velocity_body(vehicle_slave, 0, get_speed(y), 0)
+        set_velocity_body(vehicle, get_speed(y), 0, 0)
+        set_velocity_body(vehicle_slave, get_speed(y), 0, 0)
 
 def gerakDroneEmergency(string):
     """
@@ -241,13 +241,13 @@ def modeDrop(altitude_top, altitude_bot):
     print_altitude = threading.Thread(target=printAltitude)
     print_altitude.start()
 
-    set_velocity_body(vehicle, 0, 0, -0.25)
-    set_velocity_body(vehicle_slave, 0, 0, 0.25)
+    set_velocity_body(vehicle, 0, 0, 0.25)
+    set_velocity_body(vehicle_slave, 0, 0, -0.25)
 
     time.sleep(2)
 
-    set_velocity_body(vehicle, 0, 0, -0.1)
-    set_velocity_body(vehicle_slave, 0, 0, 0.1)
+    set_velocity_body(vehicle, 0, 0, 0.1)
+    set_velocity_body(vehicle_slave, 0, 0, -0.1)
 
     time.sleep(2)
 
@@ -311,105 +311,106 @@ def wifi_stop():
 
     sys.exit(1)
 
-#---- MAIN FUNCTION
-#- Check wifi thread
-check_wifi = threading.Thread(target=wifi_stop)
-check_wifi.start()
+if __name__ == "__main__":
+    #---- MAIN FUNCTION
+    #- Check wifi thread
+    check_wifi = threading.Thread(target=wifi_stop)
+    check_wifi.start()
 
-#- Takeoff
-arm_and_takeoff(2)
+    #- Takeoff
+    arm_and_takeoff(2)
 
-set_velocity_body(vehicle_slave, get_speed(5), 0, 0)
+    set_velocity_body(vehicle_slave, get_speed(5), 0, 0)
 
-time.sleep(2)
+    time.sleep(2)
 
-set_velocity_body(vehicle_slave, 0, 0, 0)
+    set_velocity_body(vehicle_slave, 0, 0, 0)
 
-time.sleep(5)
+    time.sleep(5)
 
-i = 4
-j = 4
-k = 0
+    i = 4
+    j = 4
+    k = 0
 
-while (i >= -0.000005 and j >= -0.000005):
-    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
+    while (i >= -0.000005 and j >= -0.000005):
+        print(f"i = {round(i, 2)}, j = {round(j, 2)}")
 
-    gerakDrone(round(i, 2), round(j, 2))
+        gerakDrone(round(i, 2), round(j, 2))
 
-    if (i > 0):
-        i = round(i, 2) - 0.05
-    else:
-        if (j > 0):
-            print("move y")
-            j = round(j, 2) - 0.05
-    
-    if (round(i, 2) == 0 and round(j, 2) == 0):
-        for k in range (0, 10):
-            gerakDrone(0, 0)
-            time.sleep(0.1)
+        if (i > 0):
+            i = round(i, 2) - 0.05
+        else:
+            if (j > 0):
+                print("move y")
+                j = round(j, 2) - 0.05
+        
+        if (round(i, 2) == 0 and round(j, 2) == 0):
+            for k in range (0, 10):
+                gerakDrone(0, 0)
+                time.sleep(0.1)
 
-        print("Kelar")
+            print("Kelar")
 
-        break
-    
-    time.sleep(0.1)
+            break
+        
+        time.sleep(0.1)
 
-i = -2
-j = -5
-k = 0
+    i = -2
+    j = -5
+    k = 0
 
-while (i <= 0.000005 and j <= -0.000005):
-    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
+    while (i <= 0.000005 and j <= -0.000005):
+        print(f"i = {round(i, 2)}, j = {round(j, 2)}")
 
-    gerakDrone(round(i, 2), round(j, 2))
+        gerakDrone(round(i, 2), round(j, 2))
 
-    if (i < 0):
-        i = round(i, 2) + 0.05
-    else:
-        if (j < 0):
-            print("move y")
-            j = round(j, 2) + 0.05
-    
-    if (round(i, 2) == 0 and round(j, 2) == 0):
-        for k in range (0, 10):
-            gerakDrone(0, 0)
-            time.sleep(0.1)
+        if (i < 0):
+            i = round(i, 2) + 0.05
+        else:
+            if (j < 0):
+                print("move y")
+                j = round(j, 2) + 0.05
+        
+        if (round(i, 2) == 0 and round(j, 2) == 0):
+            for k in range (0, 10):
+                gerakDrone(0, 0)
+                time.sleep(0.1)
 
-        print("Kelar")
+            print("Kelar")
 
-        break
-    
-    time.sleep(0.1)
+            break
+        
+        time.sleep(0.1)
 
-i = 2
-j = -4
-k = 0
+    i = 2
+    j = -4
+    k = 0
 
-while (i >= 0.000005 and j <= -0.000005):
-    print(f"i = {round(i, 2)}, j = {round(j, 2)}")
+    while (i >= 0.000005 and j <= -0.000005):
+        print(f"i = {round(i, 2)}, j = {round(j, 2)}")
 
-    gerakDrone(round(i, 2), round(j, 2))
+        gerakDrone(round(i, 2), round(j, 2))
 
-    if (i < 0):
-        i = round(i, 2) - 0.05
-    else:
-        if (j < 0):
-            print("move y")
-            j = round(j, 2) + 0.05
-    
-    if (round(i, 2) == 0 and round(j, 2) == 0):
-        for k in range (0, 10):
-            gerakDrone(0, 0)
-            time.sleep(0.1)
+        if (i < 0):
+            i = round(i, 2) - 0.05
+        else:
+            if (j < 0):
+                print("move y")
+                j = round(j, 2) + 0.05
+        
+        if (round(i, 2) == 0 and round(j, 2) == 0):
+            for k in range (0, 10):
+                gerakDrone(0, 0)
+                time.sleep(0.1)
 
-        print("Kelar")
+            print("Kelar")
 
-        break
-    
-    time.sleep(0.1)
+            break
+        
+        time.sleep(0.1)
 
-modeDrop(1.5, 2.5)
+    modeDrop(1.5, 2.5)
 
-print("Finished")
+    print("Finished")
 
-check_wifi.join()
+    check_wifi.join()
