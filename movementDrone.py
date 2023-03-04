@@ -29,7 +29,7 @@ dec_dist = 2 # [m]
 tol_dist = 0.075 # [m]
 
 #-- Define arm and takeoff
-def arm_and_takeoff(altitude):
+def arm_and_takeoff(altitude_top, altitude_bot):
 
    while not vehicle.is_armable:
       print("Waiting for master to be armable")
@@ -52,14 +52,14 @@ def arm_and_takeoff(altitude):
    while not vehicle_slave.armed: time.sleep(1)
 
    print("Taking Off")
-   vehicle.simple_takeoff(altitude)
-   vehicle_slave.simple_takeoff(altitude)
+   vehicle.simple_takeoff(altitude_top)
+   vehicle_slave.simple_takeoff(altitude_bot)
 
    while True:
       v_alt = vehicle.location.global_relative_frame.alt
       v_alt_slave = vehicle_slave.location.global_relative_frame.alt
       print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
-      if (v_alt >= altitude - 0.2 and v_alt_slave >= altitude - 0.2):
+      if (v_alt >= altitude_top - 0.1 and v_alt_slave >= altitude_bot - 0.1):
           print("Target altitude reached")
           break
       time.sleep(1)
