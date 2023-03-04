@@ -9,6 +9,8 @@ from urllib.request import urlopen
 from dronekit import connect, VehicleMode, LocationGlobalRelative, Command, LocationGlobal
 from pymavlink import mavutil
 import threading
+import socket
+import sys
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
@@ -57,7 +59,7 @@ def arm_and_takeoff(altitude):
       v_alt = vehicle.location.global_relative_frame.alt
       v_alt_slave = vehicle_slave.location.global_relative_frame.alt
       print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
-      if (v_alt >= altitude - 1.0 and v_alt_slave >= altitude - 1.0):
+      if (v_alt >= altitude - 0.2 and v_alt_slave >= altitude - 0.2):
           print("Target altitude reached")
           break
       time.sleep(1)
@@ -222,35 +224,69 @@ def gerakDroneEmergency(string):
         set_velocity_body(vehicle, -gnd_speed, 0, 0)
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
 
+def printAltitude():
+    for i in range(0,8):
+        v_alt = vehicle.location.global_relative_frame.alt
+        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+        print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
+
+        time.sleep(0.5)
+
 def modeDrop(altitude_top, altitude_bot):
     """
     Run this when "UP" command is received
     """
     print("Last Aruco Reached")
+
+    print_altitude = threading.Thread(target=printAltitude)
+    print_altitude.start()
+
+    set_velocity_body(vehicle, 0, 0, -0.25)
+    set_velocity_body(vehicle_slave, 0, 0, 0.25)
+
+    time.sleep(2)
+
+    set_velocity_body(vehicle, 0, 0, -0.1)
+    set_velocity_body(vehicle_slave, 0, 0, 0.1)
+
+    time.sleep(2)
+
     set_velocity_body(vehicle, 0, 0, 0)
     set_velocity_body(vehicle_slave, 0, 0, 0)
 
-    print("Taking Off...")
-    vehicle.simple_takeoff(altitude_top)
-    vehicle_slave.simple_takeoff(altitude_bot)
+    print("Reached Altitude")
 
-    while True:
-        v_alt = vehicle.location.global_relative_frame.alt
-        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-        print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
-        if (v_alt >= altitude_top - 1.0 and v_alt_slave <= altitude_bot + 1.0):
-            print("Target altitude reached")
-            break
-        time.sleep(1)
+    # master_current_location = vehicle.location.global_relative_frame
+    # slave_current_location = vehicle_slave.location.global_relative_frame
 
-#Detect wifi using url
-def is_internet():
+    # print("Taking Off...")
+    # master_location = LocationGlobalRelative(master_current_location.lat, master_current_location.lon, altitude_top)
+    # slave_location = LocationGlobalRelative(slave_current_location.lat, slave_current_location.lon, altitude_bot)
+
+    # vehicle.simple_goto(master_location)
+    # vehicle_slave.simple_goto(slave_location)
+
+    # while True:
+    #     v_alt = vehicle.location.global_relative_frame.alt
+    #     v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+    #     print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
+    #     if (v_alt >= altitude_top - 1.0 and v_alt_slave <= altitude_bot + 1.0):
+    #         print("Target altitude reached")
+    #         break
+    #     time.sleep(1)
+
+#-- detect wifi conenction (not internet) using socket
+wifi_ip = "192.168.88.61"
+
+def is_wifi():
     """
     Query internet using python
     :return:
     """
     try:
-        urlopen('https://www.google.com', timeout=1)
+        # create a socket to an address on the local network
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect((wifi_ip, 80)) # change the IP address to your router's IP
         return True
     except:
         return False
@@ -262,15 +298,18 @@ def wifi_stop():
     """
 
     # Check wifi connection
-    while is_internet():
-        print("Connected")
+    while is_wifi():
+        continue
+        # print("Connected")
     
     print("Disconnected")
 
-    # Stop the vehicle
-    vehicle.close()
-    vehicle_slave.close()
-    # NOT DONE, NEED TO BE IMPROVED
+    # Disarming the vehicle
+    print("Disarming the vehicle")
+    vehicle.armed = False
+    vehicle_slave.armed = False
+
+    sys.exit(1)
 
 #---- MAIN FUNCTION
 #- Check wifi thread
@@ -278,7 +317,7 @@ check_wifi = threading.Thread(target=wifi_stop)
 check_wifi.start()
 
 #- Takeoff
-arm_and_takeoff(10)
+arm_and_takeoff(2)
 
 set_velocity_body(vehicle_slave, get_speed(5), 0, 0)
 
@@ -346,13 +385,13 @@ i = 2
 j = -4
 k = 0
 
-while (i <= 0.000005 and j <= -0.000005):
+while (i >= 0.000005 and j <= -0.000005):
     print(f"i = {round(i, 2)}, j = {round(j, 2)}")
 
     gerakDrone(round(i, 2), round(j, 2))
 
     if (i < 0):
-        i = round(i, 2) + 0.05
+        i = round(i, 2) - 0.05
     else:
         if (j < 0):
             print("move y")
@@ -369,4 +408,8 @@ while (i <= 0.000005 and j <= -0.000005):
     
     time.sleep(0.1)
 
+modeDrop(1.5, 2.5)
+
 print("Finished")
+
+check_wifi.join()
