@@ -173,7 +173,7 @@ def change_altitude(master_target_altitude, slave_target_altitude):
         master_difference = v_alt - master_target_altitude
         # slave_difference = v_alt_slave - slave_target_altitude
 
-        if (abs(master_difference) <= vertical_tol and abs(slave_difference) <= vertical_tol):
+        if (abs(master_difference) <= vertical_tol):
             reached = True
 
         master_speed = get_velocity_altitude(master_difference)
@@ -332,107 +332,3 @@ def wifi_stop():
     # vehicle_slave.armed = False
 
     sys.exit(1)
-
-if __name__ == "__main__":
-    #---- MAIN FUNCTION
-    #- Check wifi thread
-    check_wifi = threading.Thread(target=wifi_stop)
-    check_wifi.start()
-
-    #- Takeoff
-    try: 
-        arm_and_takeoff(2, 1.5)
-
-        i = 4
-        j = 4
-        k = 0
-
-        change_altitude(0.5, 0.5)
-
-        while (i >= -0.000005 and j >= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i > 0):
-                i = round(i, 2) - 0.05
-            else:
-                if (j > 0):
-                    print("move y")
-                    j = round(j, 2) - 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-
-        i = -2
-        j = -5
-        k = 0
-
-        while (i <= 0.000005 and j <= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i < 0):
-                i = round(i, 2) + 0.05
-            else:
-                if (j < 0):
-                    print("move y")
-                    j = round(j, 2) + 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-        
-        change_altitude(2, 1.5)
-
-        i = 2
-        j = -4
-        k = 0
-
-        while (i >= 0.000005 and j <= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i > 0):
-                i = round(i, 2) - 0.05
-            else:
-                if (j < 0):
-                    print("move y")
-                    j = round(j, 2) + 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-
-        change_altitude(0, 0)
-        landDrone()
-    finally:
-        landDrone()
-
-    print("Finished")
-
-    check_wifi.join()
