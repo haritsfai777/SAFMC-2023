@@ -20,6 +20,7 @@ import sys
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
+# vehicle_master = connect('/dev/ttyUSB0', baud=57600)
 vehicle_master = connect('udp:127.0.0.1:14571')
 
 # print('Connecting Slave Drone...')
@@ -47,19 +48,19 @@ vertical_tol = 0.05 # [m]
 def arm_and_takeoff(altitude_top, altitude_bot):
 
    # Check armable. Kata ka Zeke ga usah
-    while not vehicle_master.is_armable:
-        print("Waiting for master to be armable")
-        time.sleep(1)
+    # while not vehicle_master.is_armable:
+    #     print("Waiting for master to be armable")
+    #     time.sleep(1)
 
     # while not vehicle_slave.is_armable:
     #     print("Waiting for slave to be armable")
     #     time.sleep(1)
 
-    print("Arming master motors")
-    vehicle_master.mode = VehicleMode("GUIDED")
-    vehicle_master.armed = True
+    # print("Arming master motors")
+    # vehicle_master.mode = VehicleMode("GUIDED")
+    # vehicle_master.armed = True
 
-    while not vehicle_master.armed: time.sleep(1)
+    # while not vehicle_master.armed: time.sleep(1)
 
     # print("Arming slave motors")
     # vehicle_slave.mode = VehicleMode("GUIDED")
@@ -73,7 +74,7 @@ def arm_and_takeoff(altitude_top, altitude_bot):
     # vehicle_slave.simple_takeoff(altitude_bot)
 
     while True:
-        v_alt = vehicle_master.location.global_relative_frame.alt
+        v_alt = vehicle_master.rangefinder.distance
         # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
         print(">> Altitude: Master = %.1f m"%(v_alt))
         if (v_alt >= altitude_top - 0.3):
@@ -160,7 +161,7 @@ def change_altitude(master_target_altitude, slave_target_altitude):
     print(">> Changing altitude")
 
     #-- Get current altitude
-    v_alt = vehicle_master.location.global_relative_frame.alt
+    v_alt = vehicle_master.rangefinder.distance
     # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
 
     reached = False
@@ -190,45 +191,6 @@ def change_altitude(master_target_altitude, slave_target_altitude):
         # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
 
         time.sleep(0.1)
-
-#-- Change altitude with simple_goto
-def change_altitude_simplegoto(master_target_altitude, slave_target_altitude):
-    """
-    Change altitude with simple_goto
-    """
-    print(">> Changing altitude")
-
-    #-- Another constant
-    change_vertical_tol = 0.08
-
-    #-- Get current altitude
-    v_alt = vehicle_master.location.global_relative_frame.alt
-    # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-
-    reached = False
-
-    #-- Set the vehicle velocity
-    while(not reached):
-        print(">> Altitude: Master = %.2f m"%(v_alt))
-        print(">> Target altitude: Master = %.2f m"%(master_target_altitude))
-
-        master_difference = v_alt - master_target_altitude
-        # slave_difference = v_alt_slave - slave_target_altitude
-
-        if (abs(master_difference) <= change_vertical_tol and abs(slave_difference) <= change_vertical_tol):
-            reached = True
-
-        master_location = LocationGlobalRelative(vehicle_master.location.global_relative_frame.lat, vehicle_master.location.global_relative_frame.lon, master_target_altitude)
-        vehicle_master.simple_goto(master_location)
-
-        # slave_location = LocationGlobalRelative(vehicle_slave.location.global_relative_frame.lat, vehicle_slave.location.global_relative_frame.lon, slave_target_altitude)
-        # vehicle_slave.simple_goto(slave_location)
-
-        v_alt = vehicle_master.location.global_relative_frame.alt
-        # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-
-        time.sleep(0.1)
-
 
 #-- Get velocity for x-y plane
 def get_speed(current_pos):
