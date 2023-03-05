@@ -1,7 +1,7 @@
 # First import the library
 from disEst import poseEstim, callback
 import pyrealsense2 as rs
-from movementDrone import *
+from movementDrone_masterOnly import *
 # from dronewifi import *
 
 def threshold(x,y):
