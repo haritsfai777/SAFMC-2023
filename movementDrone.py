@@ -190,7 +190,46 @@ def change_altitude(master_target_altitude, slave_target_altitude):
         v_alt_slave = vehicle_slave.location.global_relative_frame.alt
 
         time.sleep(0.1)
-        
+
+#-- Change altitude with simple_goto
+def change_altitude_simplegoto(master_target_altitude, slave_target_altitude):
+    """
+    Change altitude with simple_goto
+    """
+    print(">> Changing altitude")
+
+    #-- Another constant
+    change_vertical_tol = 0.08
+
+    #-- Get current altitude
+    v_alt = vehicle_master.location.global_relative_frame.alt
+    v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+
+    reached = False
+
+    #-- Set the vehicle velocity
+    while(not reached):
+        print(">> Altitude: Master = %.2f m, Slave = %.2f m"%(v_alt, v_alt_slave))
+        print(">> Target altitude: Master = %.2f m, Slave = %.2f m"%(master_target_altitude, slave_target_altitude))
+
+        master_difference = v_alt - master_target_altitude
+        slave_difference = v_alt_slave - slave_target_altitude
+
+        if (abs(master_difference) <= change_vertical_tol and abs(slave_difference) <= change_vertical_tol):
+            reached = True
+
+        master_location = LocationGlobalRelative(vehicle_master.location.global_relative_frame.lat, vehicle_master.location.global_relative_frame.lon, master_target_altitude)
+        vehicle_master.simple_goto(master_location)
+
+        slave_location = LocationGlobalRelative(vehicle_slave.location.global_relative_frame.lat, vehicle_slave.location.global_relative_frame.lon, slave_target_altitude)
+        vehicle_slave.simple_goto(slave_location)
+
+        v_alt = vehicle_master.location.global_relative_frame.alt
+        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+
+        time.sleep(0.1)
+
+
 #-- Get velocity for x-y plane
 def get_speed(current_pos):
     """
