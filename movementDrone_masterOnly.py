@@ -20,8 +20,8 @@ import sys
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
-# vehicle_master = connect('/dev/ttyUSB0', baud=57600)
-vehicle_master = connect('udp:127.0.0.1:14571')
+vehicle_master = connect('/dev/ttyUSB0', baud=57600)
+# vehicle_master = connect('udp:127.0.0.1:14571')
 
 # print('Connecting Slave Drone...')
 # vehicle_slave = connect('udp:127.0.0.1:14561')
@@ -56,11 +56,11 @@ def arm_and_takeoff(altitude_top, altitude_bot):
     #     print("Waiting for slave to be armable")
     #     time.sleep(1)
 
-    # print("Arming master motors")
-    # vehicle_master.mode = VehicleMode("GUIDED")
-    # vehicle_master.armed = True
+    print("Arming master motors")
+    vehicle_master.mode = VehicleMode("GUIDED")
+    vehicle_master.armed = True
 
-    # while not vehicle_master.armed: time.sleep(1)
+    while not vehicle_master.armed: time.sleep(1)
 
     # print("Arming slave motors")
     # vehicle_slave.mode = VehicleMode("GUIDED")
