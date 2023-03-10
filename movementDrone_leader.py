@@ -28,8 +28,8 @@ import sys
 
 #-- Connecting to Leader
 # master_connection = '/dev/ttyUSB0'
-master_connection = 'udp:127.0.0.1:14571'
-# master_connection = '/dev/ttyAMA0'
+# master_connection = 'udp:127.0.0.1:14571'
+master_connection = '/dev/ttyAMA0'
 
 print('Connecting Leader Drone...')
 vehicle_master = connect(master_connection, source_system=1, baud=115200) # connect d1 to PX4_1
