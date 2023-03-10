@@ -28,8 +28,8 @@ def arucoFollower():
 
     # Untuk testing, jangan lupa diganti dengan yang di bawah
     lastId = 0
-
     # lastId = 45
+    
     bannedId = []
 
     # Declare RealSense pipeline, encapsulating the actual device and sensors
@@ -84,7 +84,7 @@ def arucoFollower():
       # Loop the id with increment
 
       # untuk testing jangan lupa nanti diganti dengan yang dicomment di bawah
-      currId = 48 # First id of special command 
+      currId = 47 # First id of special command 
       lastIdSp = 49 # Last id of special command
 
       # currId = 46 # First id of special command 
