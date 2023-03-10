@@ -2,7 +2,7 @@
 import cv2
 from disNew import poseEstim
 import pyrealsense2 as rs
-from newdrone import *
+from movementDrone_leader import *
 
 def threshold(x,y):
 	if (abs(x) <= 5 and abs(y) <= 5):
@@ -67,7 +67,7 @@ def arucoFollower():
           currId = newId
 
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, video_capture, isNewId)
-        gerakDrone2(x*0.01, -y*0.01)
+        gerakDrone(x*0.01, -y*0.01)
         # gerakDrone(y*0.01, x*0.01)
 
       print("Selesai rute awal, memulai rute penurunan payload")
@@ -99,8 +99,14 @@ def arucoFollower():
 
     finally:
       print("Selesai")
+      landDrone()
       video_capture.release()
 
 if __name__ == "__main__":
-  arm_and_takeoff(10)
-  arucoFollower()
+  try:
+    arm_and_takeoff(10,10)
+    arucoFollower()
+    # change_altitude(0,0)
+    landDrone()
+  except:
+     landDrone()

@@ -20,8 +20,8 @@ import sys
 
 #-- Connect to the vehicle
 print('Connecting Master Drone...')
-# vehicle_master = connect('/dev/ttyUSB0', baud=57600)
-vehicle_master = connect('udp:127.0.0.1:14571')
+vehicle_master = connect('/dev/ttyAMA0', baud=57600)
+# vehicle_master = connect('udp:127.0.0.1:14571')
 
 # print('Connecting Slave Drone...')
 # vehicle_slave = connect('udp:127.0.0.1:14561')
@@ -74,8 +74,8 @@ def arm_and_takeoff(altitude_top, altitude_bot):
     # vehicle_slave.simple_takeoff(altitude_bot)
 
     while True:
-        # v_alt = vehicle_master.rangefinder.distance
-        v_alt = vehicle_master.location.global_relative_frame.alt
+        v_alt = vehicle_master.rangefinder.distance
+        # v_alt = vehicle_master.location.global_relative_frame.alt
         # v_alt_slave = vehicle_slave.location.global_relative_frame.alt
         print(">> Altitude: Master = %.1f m"%(v_alt))
         if (v_alt >= altitude_top - 0.3):

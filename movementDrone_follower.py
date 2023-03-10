@@ -28,7 +28,7 @@ import sys
 
 #-- Connecting to Follower
 # slave_connection = '/dev/ttyUSB0'
-slave_connection = '/dev/ttyASM0'
+slave_connection = '/dev/ttyAMA0'
 
 print('Connecting Slave Drone...')
 vehicle_slave = connect('slave_connection', source_system=2) # connect d2 to PX4_2

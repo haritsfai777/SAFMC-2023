@@ -1,7 +1,7 @@
 # First import the library
 from disEst import poseEstim, callback
 import pyrealsense2 as rs
-from movementDrone import *
+from movementDrone_leader import *
 # from dronewifi import *
 
 def threshold(x,y):
@@ -29,7 +29,7 @@ def arucoFollower():
     # Untuk testing, jangan lupa diganti dengan yang di bawah
     lastId = 0
     # lastId = 45
-    
+
     bannedId = []
 
     # Declare RealSense pipeline, encapsulating the actual device and sensors
@@ -90,7 +90,7 @@ def arucoFollower():
       # currId = 46 # First id of special command 
       # lastIdSp = 49 # Last id of special command
  
-      modeDrop(3,2.5) # Naik untuk persiapan pelepasan payload
+      change_altitude(3,2.5) # Naik untuk persiapan pelepasan payload
       while (command != "UP"):
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
         gerakDrone(x*0.01, -y*0.01)
@@ -104,14 +104,15 @@ def arucoFollower():
           
           # jika id yang sekarang adalah id terakhir, maka commandnya hanya UP
           else :
-            modeDrop(2,3)
+            change_altitude(2,3)
             print("Up")
             time.sleep(2)
             command = "UP"
 
     finally:
       print("Dropping drone...")
-      modeDrop(0,0) # landing jika sudah selesai ataupun jika keyboard interrupt
+      change_altitude(0,0) # landing jika sudah selesai ataupun jika keyboard interrupt
+      landDrone()
       print("Selesai")
       pipe.stop()
 

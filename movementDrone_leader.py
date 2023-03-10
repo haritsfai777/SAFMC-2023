@@ -28,7 +28,8 @@ import sys
 
 #-- Connecting to Leader
 # master_connection = '/dev/ttyUSB0'
-master_connection = '/dev/ttyASM0'
+master_connection = 'udp:127.0.0.1:14571'
+# master_connection = '/dev/ttyAMA0'
 
 print('Connecting Leader Drone...')
 vehicle_master = connect(master_connection, source_system=1, baud=115200) # connect d1 to PX4_1
@@ -69,16 +70,17 @@ def arm_and_takeoff(altitude_top, altitude_bot):
 
     print("Set mode to GUIDED")
     vehicle_master.mode = VehicleMode("GUIDED")
-    # vehicle_master.armed = True
+    vehicle_master.armed = True
 
-    # while not vehicle_master.armed: time.sleep(1)
+    while not vehicle_master.armed: time.sleep(1)
 
     # Taking off
     print("Taking Off")
     vehicle_master.simple_takeoff(altitude_top)
 
     while True:
-        v_alt = vehicle_master.rangefinder.distance        
+        # v_alt = vehicle_master.rangefinder.distance   
+        v_alt = vehicle_master.location.global_relative_frame.alt
         print(">> Altitude: Master = %.1f m"%(v_alt))
         if (v_alt >= altitude_top - 0.3):
             print("Target altitude reached")
@@ -164,7 +166,9 @@ def change_altitude(master_target_altitude, slave_target_altitude):
     print(">> Changing altitude")
 
     #-- Get current altitude
-    v_alt = vehicle_master.rangefinder.distance
+    # v_alt = vehicle_master.rangefinder.distance
+    v_alt = vehicle_master.location.global_relative_frame.alt
+
 
     reached = False
 
@@ -183,7 +187,8 @@ def change_altitude(master_target_altitude, slave_target_altitude):
         print(">> Master speed = %.2f m/s"%(master_speed))
         set_velocity_body(vehicle_master, vx=0, vy=0, vz=master_speed)
 
-        v_alt = vehicle_master.rangefinder.distance
+        # v_alt = vehicle_master.rangefinder.distance
+        v_alt = vehicle_master.location.global_relative_frame.alt
 
         time.sleep(0.1)
 
@@ -281,3 +286,5 @@ def wifi_stop():
     vehicle_master.armed = False
 
     sys.exit(1)
+
+# landDrone()
