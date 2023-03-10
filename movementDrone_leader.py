@@ -19,6 +19,9 @@ import threading
 # Force Quit
 import sys
 
+# T265
+from t265_to_mavlink import *
+
 #-- Connect to the vehicle
 # print('Connecting Master Drone...')
 # vehicle_master = connect('udp:127.0.0.1:14571')
@@ -29,10 +32,11 @@ import sys
 #-- Connecting to Leader
 # master_connection = '/dev/ttyUSB0'
 # master_connection = 'udp:127.0.0.1:14571'
-master_connection = '/dev/ttyAMA0'
+master_connection = '/dev/ttyACM0'
 
 print('Connecting Leader Drone...')
-vehicle_master = connect(master_connection, source_system=1, baud=115200) # connect d1 to PX4_1
+# vehicle_master = connect(master_connection, source_system=1, baud=115200) # connect d1 to PX4_1
+vehicle_master = conn
 
 #-- Set up connection to Follower
 follower_connection = 'udpin:127.0.0.1:14561'
