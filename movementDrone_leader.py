@@ -74,17 +74,17 @@ def arm_and_takeoff(altitude_top, altitude_bot):
 
     print("Set mode to GUIDED")
     vehicle_master.mode = VehicleMode("GUIDED")
-    vehicle_master.armed = True
+    # vehicle_master.armed = True
 
-    while not vehicle_master.armed: time.sleep(1)
+    # while not vehicle_master.armed: time.sleep(1)
 
     # Taking off
     print("Taking Off")
     vehicle_master.simple_takeoff(altitude_top)
 
     while True:
-        # v_alt = vehicle_master.rangefinder.distance   
-        v_alt = vehicle_master.location.global_relative_frame.alt
+        v_alt = vehicle_master.rangefinder.distance   
+        # v_alt = vehicle_master.location.global_relative_frame.alt
         print(">> Altitude: Master = %.1f m"%(v_alt))
         if (v_alt >= altitude_top - 0.3):
             print("Target altitude reached")
