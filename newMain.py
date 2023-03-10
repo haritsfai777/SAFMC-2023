@@ -1,8 +1,9 @@
 # First import the library
 import cv2
 from disNew import poseEstim
-import pyrealsense2 as rs
 from movementDrone_leader import *
+
+import threading
 
 def threshold(x,y):
 	if (abs(x) <= 5 and abs(y) <= 5):
@@ -103,10 +104,13 @@ def arucoFollower():
       video_capture.release()
 
 if __name__ == "__main__":
+  check_wifi = threading.Thread(target=wifi_stop)
+  check_wifi.start()
+
   try:
-    arm_and_takeoff(10,10)
+    arm_and_takeoff(2,10)
     arucoFollower()
-    # change_altitude(0,0)
-    landDrone()
   except:
      landDrone()
+  
+  check_wifi.join()
