@@ -487,94 +487,94 @@ def user_input_monitor():
 # Main code starts here
 #######################################
 
-try:
-    progress("INFO: pyrealsense2 version: %s" % str(rs.__version__))
-except Exception:
-    # fail silently
-    pass
-
-progress("INFO: Starting Vehicle communications")
-conn = mavutil.mavlink_connection(
-    connection_string,
-    autoreconnect = True,
-    source_system = 1,
-    source_component = 93,
-    baud=connection_baudrate,
-    force_connected=True,
-)
-
-mavlink_callbacks = {
-    'ATTITUDE': att_msg_callback,
-}
-
-mavlink_thread = threading.Thread(target=mavlink_loop, args=(conn, mavlink_callbacks))
-mavlink_thread.start()
-
-# connecting and configuring the camera is a little hit-and-miss.
-# Start a timer and rely on a restart of the script to get it working.
-# Configuring the camera appears to block all threads, so we can't do
-# this internally.
-
-# send_msg_to_gcs('Setting timer...')
-signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
-
-send_msg_to_gcs('Connecting to camera...')
-realsense_connect()
-send_msg_to_gcs('Camera connected.')
-
-signal.setitimer(signal.ITIMER_REAL, 0)  # cancel alarm
-
-# Send MAVlink messages in the background at pre-determined frequencies
-sched = BackgroundScheduler()
-
-if enable_msg_vision_position_estimate:
-    sched.add_job(send_vision_position_estimate_message, 'interval', seconds = 1/vision_position_estimate_msg_hz)
-
-if enable_msg_vision_position_delta:
-    sched.add_job(send_vision_position_delta_message, 'interval', seconds = 1/vision_position_delta_msg_hz)
-    send_vision_position_delta_message.H_aeroRef_PrevAeroBody = tf.quaternion_matrix([1,0,0,0]) 
-    send_vision_position_delta_message.prev_time_us = int(round(time.time() * 1000000))
-
-if enable_msg_vision_speed_estimate:
-    sched.add_job(send_vision_speed_estimate_message, 'interval', seconds = 1/vision_speed_estimate_msg_hz)
-
-if enable_update_tracking_confidence_to_gcs:
-    sched.add_job(update_tracking_confidence_to_gcs, 'interval', seconds = 1/update_tracking_confidence_to_gcs_hz_default)
-    update_tracking_confidence_to_gcs.prev_confidence_level = -1
-
-# A separate thread to monitor user input
-if enable_user_keyboard_input:
-    user_keyboard_input_thread = threading.Thread(target=user_input_monitor)
-    user_keyboard_input_thread.daemon = True
-    user_keyboard_input_thread.start()
-    progress("INFO: Press Enter to set EKF home at default location")
-
-sched.start()
-
-# gracefully terminate the script if an interrupt signal (e.g. ctrl-c)
-# is received.  This is considered to be abnormal termination.
-main_loop_should_quit = False
-def sigint_handler(sig, frame):
-    global main_loop_should_quit
-    main_loop_should_quit = True
-signal.signal(signal.SIGINT, sigint_handler)
-
-# gracefully terminate the script if a terminate signal is received
-# (e.g. kill -TERM).  
-def sigterm_handler(sig, frame):
-    global main_loop_should_quit
-    main_loop_should_quit = True
-    global exit_code
-    exit_code = 0
-
-signal.signal(signal.SIGTERM, sigterm_handler)
-
-if compass_enabled == 1:
-    time.sleep(1) # Wait a short while for yaw to be correctly initiated
-
-send_msg_to_gcs('Sending vision messages to FCU')
-
 def fungsi_t265():
+    try:
+        progress("INFO: pyrealsense2 version: %s" % str(rs.__version__))
+    except Exception:
+        # fail silently
+        pass
+
+    progress("INFO: Starting Vehicle communications")
+    conn = mavutil.mavlink_connection(
+        connection_string,
+        autoreconnect = True,
+        source_system = 1,
+        source_component = 93,
+        baud=connection_baudrate,
+        force_connected=True,
+    )
+
+    mavlink_callbacks = {
+        'ATTITUDE': att_msg_callback,
+    }
+
+    mavlink_thread = threading.Thread(target=mavlink_loop, args=(conn, mavlink_callbacks))
+    mavlink_thread.start()
+
+    # connecting and configuring the camera is a little hit-and-miss.
+    # Start a timer and rely on a restart of the script to get it working.
+    # Configuring the camera appears to block all threads, so we can't do
+    # this internally.
+
+    # send_msg_to_gcs('Setting timer...')
+    signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
+
+    send_msg_to_gcs('Connecting to camera...')
+    realsense_connect()
+    send_msg_to_gcs('Camera connected.')
+
+    signal.setitimer(signal.ITIMER_REAL, 0)  # cancel alarm
+
+    # Send MAVlink messages in the background at pre-determined frequencies
+    sched = BackgroundScheduler()
+
+    if enable_msg_vision_position_estimate:
+        sched.add_job(send_vision_position_estimate_message, 'interval', seconds = 1/vision_position_estimate_msg_hz)
+
+    if enable_msg_vision_position_delta:
+        sched.add_job(send_vision_position_delta_message, 'interval', seconds = 1/vision_position_delta_msg_hz)
+        send_vision_position_delta_message.H_aeroRef_PrevAeroBody = tf.quaternion_matrix([1,0,0,0]) 
+        send_vision_position_delta_message.prev_time_us = int(round(time.time() * 1000000))
+
+    if enable_msg_vision_speed_estimate:
+        sched.add_job(send_vision_speed_estimate_message, 'interval', seconds = 1/vision_speed_estimate_msg_hz)
+
+    if enable_update_tracking_confidence_to_gcs:
+        sched.add_job(update_tracking_confidence_to_gcs, 'interval', seconds = 1/update_tracking_confidence_to_gcs_hz_default)
+        update_tracking_confidence_to_gcs.prev_confidence_level = -1
+
+    # A separate thread to monitor user input
+    if enable_user_keyboard_input:
+        user_keyboard_input_thread = threading.Thread(target=user_input_monitor)
+        user_keyboard_input_thread.daemon = True
+        user_keyboard_input_thread.start()
+        progress("INFO: Press Enter to set EKF home at default location")
+
+    sched.start()
+
+    # gracefully terminate the script if an interrupt signal (e.g. ctrl-c)
+    # is received.  This is considered to be abnormal termination.
+    main_loop_should_quit = False
+    def sigint_handler(sig, frame):
+        global main_loop_should_quit
+        main_loop_should_quit = True
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    # gracefully terminate the script if a terminate signal is received
+    # (e.g. kill -TERM).  
+    def sigterm_handler(sig, frame):
+        global main_loop_should_quit
+        main_loop_should_quit = True
+        global exit_code
+        exit_code = 0
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    if compass_enabled == 1:
+        time.sleep(1) # Wait a short while for yaw to be correctly initiated
+
+    send_msg_to_gcs('Sending vision messages to FCU')
+
     try:
         while not main_loop_should_quit:
             # Wait for the next set of frames from the camera
