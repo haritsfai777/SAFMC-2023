@@ -1,11 +1,11 @@
 # First import the library
 from disEst import poseEstim, callback
-import pyrealsense2.pyrealsense2 as rs
-from movementDrone_masterOnly import *
+import pyrealsense2 as rs
+from movementDrone import *
 # from dronewifi import *
 
 def threshold(x,y):
-	if (abs(x) <= 25 and abs(y) <= 25):
+	if (abs(x) <= 10 and abs(y) <= 10):
 		return True
 
 def changeId(idDistArr, currId):
@@ -27,9 +27,9 @@ def arucoFollower():
     currId = 0
 
     # Untuk testing, jangan lupa diganti dengan yang di bawah
-    # lastId = 0
-    lastId = 5
+    lastId = 0
 
+    # lastId = 45
     bannedId = []
 
     # Declare RealSense pipeline, encapsulating the actual device and sensors
@@ -76,7 +76,7 @@ def arucoFollower():
           currId = newId
 
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
-        gerakDrone(x * 0.01, -y * 0.01)
+        gerakDrone(x*0.01, -y*0.01)
 
       print("Selesai rute awal, memulai rute penurunan payload")
       print("Switching to final markers")
@@ -84,18 +84,16 @@ def arucoFollower():
       # Loop the id with increment
 
       # untuk testing jangan lupa nanti diganti dengan yang dicomment di bawah
-      currId = 47 # First id of special command 
+      currId = 48 # First id of special command 
       lastIdSp = 49 # Last id of special command
 
       # currId = 46 # First id of special command 
       # lastIdSp = 49 # Last id of special command
  
-      change_altitude(2.5, 2) # Naik untuk persiapan pelepasan payload
-
+      modeDrop(3,2.5) # Naik untuk persiapan pelepasan payload
       while (command != "UP"):
-        print("Now UP!")
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
-        gerakDrone(x * 0.01, -y * 0.01)
+        gerakDrone(x*0.01, -y*0.01)
         
         # Cek threshold
         if threshold(x,y):
@@ -106,14 +104,14 @@ def arucoFollower():
           
           # jika id yang sekarang adalah id terakhir, maka commandnya hanya UP
           else :
-            change_altitude(2, 2.5)
+            modeDrop(2,3)
             print("Up")
             time.sleep(2)
             command = "UP"
 
     finally:
       print("Dropping drone...")
-      landDrone() # landing jika sudah selesai ataupun jika keyboard interrupt
+      modeDrop(0,0) # landing jika sudah selesai ataupun jika keyboard interrupt
       print("Selesai")
       pipe.stop()
 

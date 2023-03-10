@@ -20,17 +20,23 @@ import threading
 import sys
 
 #-- Connect to the vehicle
-print('Connecting Master Drone...')
-vehicle_master = connect('udp:127.0.0.1:14571')
+# print('Connecting Master Drone...')
+# vehicle_master = connect('udp:127.0.0.1:14571')
+
+# print('Connecting Slave Drone...')
+# vehicle_slave = connect('udp:127.0.0.1:14561')
+
+#-- Connecting to Follower
+# slave_connection = '/dev/ttyUSB0'
+slave_connection = '/dev/ttyASM0'
 
 print('Connecting Slave Drone...')
-vehicle_slave = connect('udp:127.0.0.1:14561')
+vehicle_slave = connect('slave_connection', source_system=2) # connect d2 to PX4_2
 
-vehicle = dronekit.connect('/dev/ttyS0')  # ... and other connection options
-udp_conn = MAVConnection('udpin:0.0.0.0:15667', source_system=1)
-vehicle._handler.pipe(udp_conn)
-udp_conn.master.mav.srcComponent = 1  # needed to make QGroundControl work!
-udp_conn.start()
+#-- Set up connection to Leader
+leader_connection = 'udpout:127.0.0.1:14561'
+
+udpconn_to_d1 = mavutil.mavudp(leader_connection, source_system=2) # connect d1
 
 #-- Setup the commanded flying speed
 gnd_speed = 0.5 # [m/s]
@@ -54,36 +60,24 @@ vertical_tol = 0.05 # [m]
 def arm_and_takeoff(altitude_top, altitude_bot):
 
    # Check armable. Kata ka Zeke ga usah
-    while not vehicle_master.is_armable:
-        print("Waiting for master to be armable")
-        time.sleep(1)
+    # while not vehicle_slave.is_armable:
+    #     print("Waiting for slave to be armable")
+    #     time.sleep(1)
 
-    while not vehicle_slave.is_armable:
-        print("Waiting for slave to be armable")
-        time.sleep(1)
-
-    print("Arming master motors")
-    vehicle_master.mode = VehicleMode("GUIDED")
-    vehicle_master.armed = True
-
-    while not vehicle_master.armed: time.sleep(1)
-
-    print("Arming slave motors")
+    print("Set mode to GUIDED")
     vehicle_slave.mode = VehicleMode("GUIDED")
-    vehicle_slave.armed = True
+    # vehicle_slave.armed = True
 
-    while not vehicle_slave.armed: time.sleep(1)
+    # while not vehicle_slave.armed: time.sleepa(1)
 
     # Taking off
     print("Taking Off")
-    vehicle_master.simple_takeoff(altitude_top)
     vehicle_slave.simple_takeoff(altitude_bot)
 
     while True:
-        v_alt = vehicle_master.location.global_relative_frame.alt
-        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-        print(">> Altitude: Master = %.1f m, Slave = %.1f m"%(v_alt, v_alt_slave))
-        if (v_alt >= altitude_top - 0.3 and v_alt_slave >= altitude_bot - 0.3):
+        v_alt_slave = vehicle_slave.rangefinder.distance
+        print(">> Slave = %.1f m"%(v_alt_slave))
+        if (v_alt_slave >= altitude_bot - 0.3):
             print("Target altitude reached")
             break
         time.sleep(1)
@@ -167,75 +161,28 @@ def change_altitude(master_target_altitude, slave_target_altitude):
     print(">> Changing altitude")
 
     #-- Get current altitude
-    v_alt = vehicle_master.location.global_relative_frame.alt
-    v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+    v_alt_slave = vehicle_slave.rangefinder.distance
 
     reached = False
 
     #-- Set the vehicle velocity
     while(not reached):
-        print(">> Altitude: Master = %.2f m, Slave = %.2f m"%(v_alt, v_alt_slave))
-        print(">> Target altitude: Master = %.2f m, Slave = %.2f m"%(master_target_altitude, slave_target_altitude))
+        print(">> Altitude: Slave = %.2f m"%(v_alt_slave))
+        print(">> Target altitude: Slave = %.2f m"%(slave_target_altitude))
 
-        master_difference = v_alt - master_target_altitude
         slave_difference = v_alt_slave - slave_target_altitude
 
-        if (abs(master_difference) <= vertical_tol and abs(slave_difference) <= vertical_tol):
+        if (abs(slave_difference) <= vertical_tol):
             reached = True
-
-        master_speed = get_velocity_altitude(master_difference)
-
-        print(">> Master speed = %.2f m/s"%(master_speed))
-        set_velocity_body(vehicle_master, vx=0, vy=0, vz=master_speed)
 
         slave_speed = get_velocity_altitude(slave_difference)
 
         print(">> Slave speed = %.2f m/s"%(slave_speed))
         set_velocity_body(vehicle_slave, vx=0, vy=0, vz=slave_speed)
 
-        v_alt = vehicle_master.location.global_relative_frame.alt
-        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+        v_alt_slave = vehicle_slave.rangefinder.distance
 
         time.sleep(0.1)
-
-#-- Change altitude with simple_goto
-def change_altitude_simplegoto(master_target_altitude, slave_target_altitude):
-    """
-    Change altitude with simple_goto
-    """
-    print(">> Changing altitude")
-
-    #-- Another constant
-    change_vertical_tol = 0.08
-
-    #-- Get current altitude
-    v_alt = vehicle_master.location.global_relative_frame.alt
-    v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-
-    reached = False
-
-    #-- Set the vehicle velocity
-    while(not reached):
-        print(">> Altitude: Master = %.2f m, Slave = %.2f m"%(v_alt, v_alt_slave))
-        print(">> Target altitude: Master = %.2f m, Slave = %.2f m"%(master_target_altitude, slave_target_altitude))
-
-        master_difference = v_alt - master_target_altitude
-        slave_difference = v_alt_slave - slave_target_altitude
-
-        if (abs(master_difference) <= change_vertical_tol and abs(slave_difference) <= change_vertical_tol):
-            reached = True
-
-        master_location = LocationGlobalRelative(vehicle_master.location.global_relative_frame.lat, vehicle_master.location.global_relative_frame.lon, master_target_altitude)
-        vehicle_master.simple_goto(master_location)
-
-        slave_location = LocationGlobalRelative(vehicle_slave.location.global_relative_frame.lat, vehicle_slave.location.global_relative_frame.lon, slave_target_altitude)
-        vehicle_slave.simple_goto(slave_location)
-
-        v_alt = vehicle_master.location.global_relative_frame.alt
-        v_alt_slave = vehicle_slave.location.global_relative_frame.alt
-
-        time.sleep(0.1)
-
 
 #-- Get velocity for x-y plane
 def get_speed(current_pos):
@@ -262,21 +209,18 @@ def gerakDrone(x, y):
     Give the drone velocity vector. This function should be called every new x and y value is inputted from aruco detector
     """
     #-- Yaw safety
-    condition_yaw(vehicle_master, heading=0)
     condition_yaw(vehicle_slave, heading=0)
 
     print(f"Target Position: ({x}, {y})")
 
     # Set vx
     print(f"vx = {get_speed(x)}")
-    set_velocity_body(vehicle_master, 0, get_speed(x), 0)
     set_velocity_body(vehicle_slave, 0, get_speed(x), 0)
 
     # Check if has reached tolerating distance for drone to move in y direction
     if(abs(x) < tol_dist):
         # Set vy
         print(f"vy = {get_speed(y)}")
-        set_velocity_body(vehicle_master, get_speed(y), 0, 0)
         set_velocity_body(vehicle_slave, get_speed(y), 0, 0)
 
 def gerakDroneEmergency(string):
@@ -284,24 +228,18 @@ def gerakDroneEmergency(string):
     Used only if x and y position is not detected, manually set the direction based on command from the previous aruco marker
     """
     #-- Yaw safety
-    condition_yaw(vehicle_master, 0)
     condition_yaw(vehicle_slave, 0)
 
     if string == "RIGHT":
-        set_velocity_body(vehicle_master, 0, gnd_speed, 0)
         set_velocity_body(vehicle_slave, 0, gnd_speed, 0)
     elif string == "LEFT":
-        set_velocity_body(vehicle_master, 0, -gnd_speed, 0)
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
     elif string == "FORWARD":
-        set_velocity_body(vehicle_master, gnd_speed, 0, 0)
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
     elif string == "BACKWARD":
-        set_velocity_body(vehicle_master, -gnd_speed, 0, 0)
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
 
 def landDrone():
-    vehicle_master.mode = VehicleMode("LAND")
     vehicle_slave.mode = VehicleMode("LAND")
 
 #-- detect wifi conenction (not internet) using socket
@@ -335,119 +273,6 @@ def wifi_stop():
 
     # Disarming the vehicle
     print("Disarming the vehicle")
-    vehicle_master.armed = False
     vehicle_slave.armed = False
 
     sys.exit(1)
-
-if __name__ == "__main__":
-    #---- MAIN FUNCTION
-    #- Check wifi thread
-    check_wifi = threading.Thread(target=wifi_stop)
-    check_wifi.start()
-
-    #- Takeoff
-    try: 
-        arm_and_takeoff(2, 1.5)
-
-        set_velocity_body(vehicle_slave, get_speed(5), 0, 0)
-
-        time.sleep(2)
-
-        set_velocity_body(vehicle_slave, 0, 0, 0)
-
-        time.sleep(10)
-
-        i = 4
-        j = 4
-        k = 0
-
-        change_altitude(0.5, 0.5)
-
-        while (i >= -0.000005 and j >= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i > 0):
-                i = round(i, 2) - 0.05
-            else:
-                if (j > 0):
-                    print("move y")
-                    j = round(j, 2) - 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-
-        i = -2
-        j = -5
-        k = 0
-
-        while (i <= 0.000005 and j <= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i < 0):
-                i = round(i, 2) + 0.05
-            else:
-                if (j < 0):
-                    print("move y")
-                    j = round(j, 2) + 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-        
-        change_altitude(2, 1.5)
-
-        i = 2
-        j = -4
-        k = 0
-
-        while (i >= 0.000005 and j <= -0.000005):
-            print(f"i = {round(i, 2)}, j = {round(j, 2)}")
-
-            gerakDrone(round(i, 2), round(j, 2))
-
-            if (i > 0):
-                i = round(i, 2) - 0.05
-            else:
-                if (j < 0):
-                    print("move y")
-                    j = round(j, 2) + 0.05
-            
-            if (round(i, 2) == 0 and round(j, 2) == 0):
-                for k in range (0, 10):
-                    gerakDrone(0, 0)
-                    time.sleep(0.1)
-
-                print("Kelar")
-
-                break
-            
-            time.sleep(0.1)
-
-        change_altitude(0, 0)
-        landDrone()
-    finally:
-        landDrone()
-
-    print("Finished")
-
-    check_wifi.join()
