@@ -574,97 +574,98 @@ if compass_enabled == 1:
 
 send_msg_to_gcs('Sending vision messages to FCU')
 
-try:
-    while not main_loop_should_quit:
-        # Wait for the next set of frames from the camera
-        frames = pipe.wait_for_frames()
+def fungsi_t265():
+    try:
+        while not main_loop_should_quit:
+            # Wait for the next set of frames from the camera
+            frames = pipe.wait_for_frames()
 
-        # Fetch pose frame
-        pose = frames.get_pose_frame()
+            # Fetch pose frame
+            pose = frames.get_pose_frame()
 
-        # Process data
-        if pose:
-            with lock:
-                # Store the timestamp for MAVLink messages
-                current_time_us = int(round(time.time() * 1000000))
+            # Process data
+            if pose:
+                with lock:
+                    # Store the timestamp for MAVLink messages
+                    current_time_us = int(round(time.time() * 1000000))
 
-                # Pose data consists of translation and rotation
-                data = pose.get_pose_data()
-                
-                # Confidence level value from T265: 0-3, remapped to 0 - 100: 0% - Failed / 33.3% - Low / 66.6% - Medium / 100% - High  
-                current_confidence_level = float(data.tracker_confidence * 100 / 3)  
-
-                # In transformations, Quaternions w+ix+jy+kz are represented as [w, x, y, z]!
-                H_T265Ref_T265body = tf.quaternion_matrix([data.rotation.w, data.rotation.x, data.rotation.y, data.rotation.z]) 
-                H_T265Ref_T265body[0][3] = data.translation.x * scale_factor
-                H_T265Ref_T265body[1][3] = data.translation.y * scale_factor
-                H_T265Ref_T265body[2][3] = data.translation.z * scale_factor
-
-                # Transform to aeronautic coordinates (body AND reference frame!)
-                H_aeroRef_aeroBody = H_aeroRef_T265Ref.dot( H_T265Ref_T265body.dot( H_T265body_aeroBody))
-
-                # Calculate GLOBAL XYZ speed (speed from T265 is already GLOBAL)
-                V_aeroRef_aeroBody = tf.quaternion_matrix([1,0,0,0])
-                V_aeroRef_aeroBody[0][3] = data.velocity.x
-                V_aeroRef_aeroBody[1][3] = data.velocity.y
-                V_aeroRef_aeroBody[2][3] = data.velocity.z
-                V_aeroRef_aeroBody = H_aeroRef_T265Ref.dot(V_aeroRef_aeroBody)
-
-                # Check for pose jump and increment reset_counter
-                if prev_data != None:
-                    delta_translation = [data.translation.x - prev_data.translation.x, data.translation.y - prev_data.translation.y, data.translation.z - prev_data.translation.z]
-                    delta_velocity = [data.velocity.x - prev_data.velocity.x, data.velocity.y - prev_data.velocity.y, data.velocity.z - prev_data.velocity.z]
-                    position_displacement = np.linalg.norm(delta_translation)
-                    speed_delta = np.linalg.norm(delta_velocity)
-
-                    # Pose jump is indicated when position changes abruptly. The behavior is not well documented yet (as of librealsense 2.34.0)
-                    jump_threshold = 0.1 # in meters, from trials and errors, should be relative to how frequent is the position data obtained (200Hz for the T265)
-                    jump_speed_threshold = 20.0 # in m/s from trials and errors, should be relative to how frequent is the velocity data obtained (200Hz for the T265)
-                    if (position_displacement > jump_threshold) or (speed_delta > jump_speed_threshold):
-                        send_msg_to_gcs('VISO jump detected')
-                        if position_displacement > jump_threshold:
-                            progress("Position jumped by: %s" % position_displacement)
-                        elif speed_delta > jump_speed_threshold:
-                            progress("Speed jumped by: %s" % speed_delta)
-                        increment_reset_counter()
+                    # Pose data consists of translation and rotation
+                    data = pose.get_pose_data()
                     
-                prev_data = data
+                    # Confidence level value from T265: 0-3, remapped to 0 - 100: 0% - Failed / 33.3% - Low / 66.6% - Medium / 100% - High  
+                    current_confidence_level = float(data.tracker_confidence * 100 / 3)  
 
-                # Take offsets from body's center of gravity (or IMU) to camera's origin into account
-                if body_offset_enabled == 1:
-                    H_body_camera = tf.euler_matrix(0, 0, 0, 'sxyz')
-                    H_body_camera[0][3] = body_offset_x
-                    H_body_camera[1][3] = body_offset_y
-                    H_body_camera[2][3] = body_offset_z
-                    H_camera_body = np.linalg.inv(H_body_camera)
-                    H_aeroRef_aeroBody = H_body_camera.dot(H_aeroRef_aeroBody.dot(H_camera_body))
+                    # In transformations, Quaternions w+ix+jy+kz are represented as [w, x, y, z]!
+                    H_T265Ref_T265body = tf.quaternion_matrix([data.rotation.w, data.rotation.x, data.rotation.y, data.rotation.z]) 
+                    H_T265Ref_T265body[0][3] = data.translation.x * scale_factor
+                    H_T265Ref_T265body[1][3] = data.translation.y * scale_factor
+                    H_T265Ref_T265body[2][3] = data.translation.z * scale_factor
 
-                # Realign heading to face north using initial compass data
-                if compass_enabled == 1:
-                    H_aeroRef_aeroBody = H_aeroRef_aeroBody.dot( tf.euler_matrix(0, 0, heading_north_yaw, 'sxyz'))
+                    # Transform to aeronautic coordinates (body AND reference frame!)
+                    H_aeroRef_aeroBody = H_aeroRef_T265Ref.dot( H_T265Ref_T265body.dot( H_T265body_aeroBody))
 
-                # Show debug messages here
-                if debug_enable == 1:
-                    os.system('clear') # This helps in displaying the messages to be more readable
-                    progress("DEBUG: Raw RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_T265Ref_T265body, 'sxyz')) * 180 / m.pi))
-                    progress("DEBUG: NED RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_aeroRef_aeroBody, 'sxyz')) * 180 / m.pi))
-                    progress("DEBUG: Raw pos xyz : {}".format( np.array( [data.translation.x, data.translation.y, data.translation.z])))
-                    progress("DEBUG: NED pos xyz : {}".format( np.array( tf.translation_from_matrix( H_aeroRef_aeroBody))))
+                    # Calculate GLOBAL XYZ speed (speed from T265 is already GLOBAL)
+                    V_aeroRef_aeroBody = tf.quaternion_matrix([1,0,0,0])
+                    V_aeroRef_aeroBody[0][3] = data.velocity.x
+                    V_aeroRef_aeroBody[1][3] = data.velocity.y
+                    V_aeroRef_aeroBody[2][3] = data.velocity.z
+                    V_aeroRef_aeroBody = H_aeroRef_T265Ref.dot(V_aeroRef_aeroBody)
 
-except Exception as e:
-    progress(e)
+                    # Check for pose jump and increment reset_counter
+                    if prev_data != None:
+                        delta_translation = [data.translation.x - prev_data.translation.x, data.translation.y - prev_data.translation.y, data.translation.z - prev_data.translation.z]
+                        delta_velocity = [data.velocity.x - prev_data.velocity.x, data.velocity.y - prev_data.velocity.y, data.velocity.z - prev_data.velocity.z]
+                        position_displacement = np.linalg.norm(delta_translation)
+                        speed_delta = np.linalg.norm(delta_velocity)
 
-except:
-    send_msg_to_gcs('ERROR IN SCRIPT')  
-    progress("Unexpected error: %s" % sys.exc_info()[0])
+                        # Pose jump is indicated when position changes abruptly. The behavior is not well documented yet (as of librealsense 2.34.0)
+                        jump_threshold = 0.1 # in meters, from trials and errors, should be relative to how frequent is the position data obtained (200Hz for the T265)
+                        jump_speed_threshold = 20.0 # in m/s from trials and errors, should be relative to how frequent is the velocity data obtained (200Hz for the T265)
+                        if (position_displacement > jump_threshold) or (speed_delta > jump_speed_threshold):
+                            send_msg_to_gcs('VISO jump detected')
+                            if position_displacement > jump_threshold:
+                                progress("Position jumped by: %s" % position_displacement)
+                            elif speed_delta > jump_speed_threshold:
+                                progress("Speed jumped by: %s" % speed_delta)
+                            increment_reset_counter()
+                        
+                    prev_data = data
 
-finally:
-    progress('Closing the script...')
-    # start a timer in case stopping everything nicely doesn't work.
-    signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
-    pipe.stop()
-    mavlink_thread_should_exit = True
-    mavlink_thread.join()
-    conn.close()
-    progress("INFO: Realsense pipeline and vehicle object closed.")
-    sys.exit(exit_code)
+                    # Take offsets from body's center of gravity (or IMU) to camera's origin into account
+                    if body_offset_enabled == 1:
+                        H_body_camera = tf.euler_matrix(0, 0, 0, 'sxyz')
+                        H_body_camera[0][3] = body_offset_x
+                        H_body_camera[1][3] = body_offset_y
+                        H_body_camera[2][3] = body_offset_z
+                        H_camera_body = np.linalg.inv(H_body_camera)
+                        H_aeroRef_aeroBody = H_body_camera.dot(H_aeroRef_aeroBody.dot(H_camera_body))
+
+                    # Realign heading to face north using initial compass data
+                    if compass_enabled == 1:
+                        H_aeroRef_aeroBody = H_aeroRef_aeroBody.dot( tf.euler_matrix(0, 0, heading_north_yaw, 'sxyz'))
+
+                    # Show debug messages here
+                    if debug_enable == 1:
+                        os.system('clear') # This helps in displaying the messages to be more readable
+                        progress("DEBUG: Raw RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_T265Ref_T265body, 'sxyz')) * 180 / m.pi))
+                        progress("DEBUG: NED RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_aeroRef_aeroBody, 'sxyz')) * 180 / m.pi))
+                        progress("DEBUG: Raw pos xyz : {}".format( np.array( [data.translation.x, data.translation.y, data.translation.z])))
+                        progress("DEBUG: NED pos xyz : {}".format( np.array( tf.translation_from_matrix( H_aeroRef_aeroBody))))
+
+    except Exception as e:
+        progress(e)
+
+    except:
+        send_msg_to_gcs('ERROR IN SCRIPT')  
+        progress("Unexpected error: %s" % sys.exc_info()[0])
+
+    finally:
+        progress('Closing the script...')
+        # start a timer in case stopping everything nicely doesn't work.
+        signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
+        pipe.stop()
+        mavlink_thread_should_exit = True
+        mavlink_thread.join()
+        conn.close()
+        progress("INFO: Realsense pipeline and vehicle object closed.")
+        sys.exit(exit_code)
