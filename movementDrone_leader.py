@@ -20,7 +20,7 @@ import threading
 import sys
 
 # T265
-from t265_to_mavlink import *
+# from t265_to_mavlink import *
 
 #-- Connect to the vehicle
 # print('Connecting Master Drone...')
@@ -31,20 +31,20 @@ from t265_to_mavlink import *
 
 #-- Connecting to Leader
 # master_connection = '/dev/ttyUSB0'
-# master_connection = 'udp:127.0.0.1:14571'
-master_connection = '/dev/ttyACM0'
+master_connection = 'udp:127.0.0.1:14561'
+# master_connection = '/dev/ttyACM0'
 
 print('Connecting Leader Drone...')
-# vehicle_master = connect(master_connection, source_system=1, baud=115200) # connect d1 to PX4_1
-vehicle_master = conn
+vehicle_master = connect(master_connection, source_system=1) # connect d1 to PX4_1
+# vehicle_master = conn
 
 #-- Set up connection to Follower
-follower_connection = 'udpin:127.0.0.1:14561'
+#follower_connection = 'udpin:127.0.0.1:14571'
 
-udp_pipe_to_d2 = MAVConnection(follower_connection, source_system=1)
-vehicle_master._handler.pipe(udp_pipe_to_d2)
-udp_pipe_to_d2.master.mav.srcComponent = 1
-udp_pipe_to_d2.start() # start the pipe to DroneKit_2
+# udp_pipe_to_d2 = MAVConnection(follower_connection, source_system=1)
+#vehicle_master._handler.pipe(udp_pipe_to_d2)
+#udp_pipe_to_d2.master.mav.srcComponent = 1
+#udp_pipe_to_d2.start() # start the pipe to DroneKit_2
 
 #-- Setup the commanded flying speed
 gnd_speed = 0.5 # [m/s]
@@ -68,23 +68,23 @@ vertical_tol = 0.05 # [m]
 def arm_and_takeoff(altitude_top, altitude_bot):
 
    # Check armable. Kata ka Zeke ga usah
-    # while not vehicle_master.is_armable:
-    #     print("Waiting for master to be armable")
-    #     time.sleep(1)
+    while not vehicle_master.is_armable:
+        print("Waiting for master to be armable")
+        time.sleep(1)
 
     print("Set mode to GUIDED")
     vehicle_master.mode = VehicleMode("GUIDED")
-    # vehicle_master.armed = True
+    vehicle_master.armed = True
 
-    # while not vehicle_master.armed: time.sleep(1)
+    while not vehicle_master.armed: time.sleep(1)
 
     # Taking off
     print("Taking Off")
     vehicle_master.simple_takeoff(altitude_top)
 
     while True:
-        v_alt = vehicle_master.rangefinder.distance   
-        # v_alt = vehicle_master.location.global_relative_frame.alt
+        # v_alt = vehicle_master.rangefinder.distance   
+        v_alt = vehicle_master.location.global_relative_frame.alt
         print(">> Altitude: Master = %.1f m"%(v_alt))
         if (v_alt >= altitude_top - 0.3):
             print("Target altitude reached")

@@ -32,6 +32,7 @@ import signal
 from time import sleep
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymavlink import mavutil
+from mavlink import *
 
 
 # Replacement of the standard print() function to flush the output
@@ -45,8 +46,9 @@ def progress(string):
 #######################################
 
 # Default configurations for connection to the FCU
-connection_string_default = '/dev/ttyACM0'
-connection_baudrate_default = 921600
+# connection_string_default = '/dev/ttyACM0'
+connection_string_default = 'udp:127.0.0.1:14571'
+connection_baudrate_default = 115200
 connection_timeout_sec_default = 5
 
 # Transformation to convert different camera orientations to NED convention. Replace camera_orientation_default for your configuration.
@@ -487,185 +489,184 @@ def user_input_monitor():
 # Main code starts here
 #######################################
 
-def fungsi_t265():
-    try:
-        progress("INFO: pyrealsense2 version: %s" % str(rs.__version__))
-    except Exception:
-        # fail silently
-        pass
+try:
+    progress("INFO: pyrealsense2 version: %s" % str(rs.__version__))
+except Exception:
+    # fail silently
+    pass
 
-    progress("INFO: Starting Vehicle communications")
-    conn = mavutil.mavlink_connection(
-        connection_string,
-        autoreconnect = True,
-        source_system = 1,
-        source_component = 93,
-        baud=connection_baudrate,
-        force_connected=True,
-    )
+progress("INFO: Starting Vehicle communications")
+conn = mavutil.mavlink_connection(
+    connection_string,
+    autoreconnect = True,
+    source_system = 1,
+    source_component = 93,
+    baud=connection_baudrate,
+    force_connected=True,
+)
 
-    mavlink_callbacks = {
-        'ATTITUDE': att_msg_callback,
-    }
+mavlink_callbacks = {
+    'ATTITUDE': att_msg_callback,
+}
 
-    mavlink_thread = threading.Thread(target=mavlink_loop, args=(conn, mavlink_callbacks))
-    mavlink_thread.start()
+mavlink_thread = threading.Thread(target=mavlink_loop, args=(conn, mavlink_callbacks))
+mavlink_thread.start()
 
-    # connecting and configuring the camera is a little hit-and-miss.
-    # Start a timer and rely on a restart of the script to get it working.
-    # Configuring the camera appears to block all threads, so we can't do
-    # this internally.
+# connecting and configuring the camera is a little hit-and-miss.
+# Start a timer and rely on a restart of the script to get it working.
+# Configuring the camera appears to block all threads, so we can't do
+# this internally.
 
-    # send_msg_to_gcs('Setting timer...')
-    signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
+# send_msg_to_gcs('Setting timer...')
+signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
 
-    send_msg_to_gcs('Connecting to camera...')
-    realsense_connect()
-    send_msg_to_gcs('Camera connected.')
+send_msg_to_gcs('Connecting to camera...')
+realsense_connect()
+send_msg_to_gcs('Camera connected.')
 
-    signal.setitimer(signal.ITIMER_REAL, 0)  # cancel alarm
+signal.setitimer(signal.ITIMER_REAL, 0)  # cancel alarm
 
-    # Send MAVlink messages in the background at pre-determined frequencies
-    sched = BackgroundScheduler()
+# Send MAVlink messages in the background at pre-determined frequencies
+sched = BackgroundScheduler()
 
-    if enable_msg_vision_position_estimate:
-        sched.add_job(send_vision_position_estimate_message, 'interval', seconds = 1/vision_position_estimate_msg_hz)
+if enable_msg_vision_position_estimate:
+    sched.add_job(send_vision_position_estimate_message, 'interval', seconds = 1/vision_position_estimate_msg_hz)
 
-    if enable_msg_vision_position_delta:
-        sched.add_job(send_vision_position_delta_message, 'interval', seconds = 1/vision_position_delta_msg_hz)
-        send_vision_position_delta_message.H_aeroRef_PrevAeroBody = tf.quaternion_matrix([1,0,0,0]) 
-        send_vision_position_delta_message.prev_time_us = int(round(time.time() * 1000000))
+if enable_msg_vision_position_delta:
+    sched.add_job(send_vision_position_delta_message, 'interval', seconds = 1/vision_position_delta_msg_hz)
+    send_vision_position_delta_message.H_aeroRef_PrevAeroBody = tf.quaternion_matrix([1,0,0,0]) 
+    send_vision_position_delta_message.prev_time_us = int(round(time.time() * 1000000))
 
-    if enable_msg_vision_speed_estimate:
-        sched.add_job(send_vision_speed_estimate_message, 'interval', seconds = 1/vision_speed_estimate_msg_hz)
+if enable_msg_vision_speed_estimate:
+    sched.add_job(send_vision_speed_estimate_message, 'interval', seconds = 1/vision_speed_estimate_msg_hz)
 
-    if enable_update_tracking_confidence_to_gcs:
-        sched.add_job(update_tracking_confidence_to_gcs, 'interval', seconds = 1/update_tracking_confidence_to_gcs_hz_default)
-        update_tracking_confidence_to_gcs.prev_confidence_level = -1
+if enable_update_tracking_confidence_to_gcs:
+    sched.add_job(update_tracking_confidence_to_gcs, 'interval', seconds = 1/update_tracking_confidence_to_gcs_hz_default)
+    update_tracking_confidence_to_gcs.prev_confidence_level = -1
 
-    # A separate thread to monitor user input
-    if enable_user_keyboard_input:
-        user_keyboard_input_thread = threading.Thread(target=user_input_monitor)
-        user_keyboard_input_thread.daemon = True
-        user_keyboard_input_thread.start()
-        progress("INFO: Press Enter to set EKF home at default location")
+# A separate thread to monitor user input
+if enable_user_keyboard_input:
+    user_keyboard_input_thread = threading.Thread(target=user_input_monitor)
+    user_keyboard_input_thread.daemon = True
+    user_keyboard_input_thread.start()
+    progress("INFO: Press Enter to set EKF home at default location")
 
-    sched.start()
+sched.start()
 
-    # gracefully terminate the script if an interrupt signal (e.g. ctrl-c)
-    # is received.  This is considered to be abnormal termination.
-    main_loop_should_quit = False
-    def sigint_handler(sig, frame):
-        global main_loop_should_quit
-        main_loop_should_quit = True
-    signal.signal(signal.SIGINT, sigint_handler)
+# gracefully terminate the script if an interrupt signal (e.g. ctrl-c)
+# is received.  This is considered to be abnormal termination.
+main_loop_should_quit = False
+def sigint_handler(sig, frame):
+    global main_loop_should_quit
+    main_loop_should_quit = True
+signal.signal(signal.SIGINT, sigint_handler)
 
-    # gracefully terminate the script if a terminate signal is received
-    # (e.g. kill -TERM).  
-    def sigterm_handler(sig, frame):
-        global main_loop_should_quit
-        main_loop_should_quit = True
-        global exit_code
-        exit_code = 0
+# gracefully terminate the script if a terminate signal is received
+# (e.g. kill -TERM).  
+def sigterm_handler(sig, frame):
+    global main_loop_should_quit
+    main_loop_should_quit = True
+    global exit_code
+    exit_code = 0
 
-    signal.signal(signal.SIGTERM, sigterm_handler)
+signal.signal(signal.SIGTERM, sigterm_handler)
 
-    if compass_enabled == 1:
-        time.sleep(1) # Wait a short while for yaw to be correctly initiated
+if compass_enabled == 1:
+    time.sleep(1) # Wait a short while for yaw to be correctly initiated
 
-    send_msg_to_gcs('Sending vision messages to FCU')
+send_msg_to_gcs('Sending vision messages to FCU')
 
-    try:
-        while not main_loop_should_quit:
-            # Wait for the next set of frames from the camera
-            frames = pipe.wait_for_frames()
+try:
+    while not main_loop_should_quit:
+        # Wait for the next set of frames from the camera
+        frames = pipe.wait_for_frames()
 
-            # Fetch pose frame
-            pose = frames.get_pose_frame()
+        # Fetch pose frame
+        pose = frames.get_pose_frame()
 
-            # Process data
-            if pose:
-                with lock:
-                    # Store the timestamp for MAVLink messages
-                    current_time_us = int(round(time.time() * 1000000))
+        # Process data
+        if pose:
+            with lock:
+                # Store the timestamp for MAVLink messages
+                current_time_us = int(round(time.time() * 1000000))
 
-                    # Pose data consists of translation and rotation
-                    data = pose.get_pose_data()
+                # Pose data consists of translation and rotation
+                data = pose.get_pose_data()
+                
+                # Confidence level value from T265: 0-3, remapped to 0 - 100: 0% - Failed / 33.3% - Low / 66.6% - Medium / 100% - High  
+                current_confidence_level = float(data.tracker_confidence * 100 / 3)  
+
+                # In transformations, Quaternions w+ix+jy+kz are represented as [w, x, y, z]!
+                H_T265Ref_T265body = tf.quaternion_matrix([data.rotation.w, data.rotation.x, data.rotation.y, data.rotation.z]) 
+                H_T265Ref_T265body[0][3] = data.translation.x * scale_factor
+                H_T265Ref_T265body[1][3] = data.translation.y * scale_factor
+                H_T265Ref_T265body[2][3] = data.translation.z * scale_factor
+
+                # Transform to aeronautic coordinates (body AND reference frame!)
+                H_aeroRef_aeroBody = H_aeroRef_T265Ref.dot( H_T265Ref_T265body.dot( H_T265body_aeroBody))
+
+                # Calculate GLOBAL XYZ speed (speed from T265 is already GLOBAL)
+                V_aeroRef_aeroBody = tf.quaternion_matrix([1,0,0,0])
+                V_aeroRef_aeroBody[0][3] = data.velocity.x
+                V_aeroRef_aeroBody[1][3] = data.velocity.y
+                V_aeroRef_aeroBody[2][3] = data.velocity.z
+                V_aeroRef_aeroBody = H_aeroRef_T265Ref.dot(V_aeroRef_aeroBody)
+
+                # Check for pose jump and increment reset_counter
+                if prev_data != None:
+                    delta_translation = [data.translation.x - prev_data.translation.x, data.translation.y - prev_data.translation.y, data.translation.z - prev_data.translation.z]
+                    delta_velocity = [data.velocity.x - prev_data.velocity.x, data.velocity.y - prev_data.velocity.y, data.velocity.z - prev_data.velocity.z]
+                    position_displacement = np.linalg.norm(delta_translation)
+                    speed_delta = np.linalg.norm(delta_velocity)
+
+                    # Pose jump is indicated when position changes abruptly. The behavior is not well documented yet (as of librealsense 2.34.0)
+                    jump_threshold = 0.1 # in meters, from trials and errors, should be relative to how frequent is the position data obtained (200Hz for the T265)
+                    jump_speed_threshold = 20.0 # in m/s from trials and errors, should be relative to how frequent is the velocity data obtained (200Hz for the T265)
+                    if (position_displacement > jump_threshold) or (speed_delta > jump_speed_threshold):
+                        send_msg_to_gcs('VISO jump detected')
+                        if position_displacement > jump_threshold:
+                            progress("Position jumped by: %s" % position_displacement)
+                        elif speed_delta > jump_speed_threshold:
+                            progress("Speed jumped by: %s" % speed_delta)
+                        increment_reset_counter()
                     
-                    # Confidence level value from T265: 0-3, remapped to 0 - 100: 0% - Failed / 33.3% - Low / 66.6% - Medium / 100% - High  
-                    current_confidence_level = float(data.tracker_confidence * 100 / 3)  
+                prev_data = data
 
-                    # In transformations, Quaternions w+ix+jy+kz are represented as [w, x, y, z]!
-                    H_T265Ref_T265body = tf.quaternion_matrix([data.rotation.w, data.rotation.x, data.rotation.y, data.rotation.z]) 
-                    H_T265Ref_T265body[0][3] = data.translation.x * scale_factor
-                    H_T265Ref_T265body[1][3] = data.translation.y * scale_factor
-                    H_T265Ref_T265body[2][3] = data.translation.z * scale_factor
+                # Take offsets from body's center of gravity (or IMU) to camera's origin into account
+                if body_offset_enabled == 1:
+                    H_body_camera = tf.euler_matrix(0, 0, 0, 'sxyz')
+                    H_body_camera[0][3] = body_offset_x
+                    H_body_camera[1][3] = body_offset_y
+                    H_body_camera[2][3] = body_offset_z
+                    H_camera_body = np.linalg.inv(H_body_camera)
+                    H_aeroRef_aeroBody = H_body_camera.dot(H_aeroRef_aeroBody.dot(H_camera_body))
 
-                    # Transform to aeronautic coordinates (body AND reference frame!)
-                    H_aeroRef_aeroBody = H_aeroRef_T265Ref.dot( H_T265Ref_T265body.dot( H_T265body_aeroBody))
+                # Realign heading to face north using initial compass data
+                if compass_enabled == 1:
+                    H_aeroRef_aeroBody = H_aeroRef_aeroBody.dot( tf.euler_matrix(0, 0, heading_north_yaw, 'sxyz'))
 
-                    # Calculate GLOBAL XYZ speed (speed from T265 is already GLOBAL)
-                    V_aeroRef_aeroBody = tf.quaternion_matrix([1,0,0,0])
-                    V_aeroRef_aeroBody[0][3] = data.velocity.x
-                    V_aeroRef_aeroBody[1][3] = data.velocity.y
-                    V_aeroRef_aeroBody[2][3] = data.velocity.z
-                    V_aeroRef_aeroBody = H_aeroRef_T265Ref.dot(V_aeroRef_aeroBody)
+                # Show debug messages here
+                if debug_enable == 1:
+                    os.system('clear') # This helps in displaying the messages to be more readable
+                    progress("DEBUG: Raw RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_T265Ref_T265body, 'sxyz')) * 180 / m.pi))
+                    progress("DEBUG: NED RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_aeroRef_aeroBody, 'sxyz')) * 180 / m.pi))
+                    progress("DEBUG: Raw pos xyz : {}".format( np.array( [data.translation.x, data.translation.y, data.translation.z])))
+                    progress("DEBUG: NED pos xyz : {}".format( np.array( tf.translation_from_matrix( H_aeroRef_aeroBody))))
 
-                    # Check for pose jump and increment reset_counter
-                    if prev_data != None:
-                        delta_translation = [data.translation.x - prev_data.translation.x, data.translation.y - prev_data.translation.y, data.translation.z - prev_data.translation.z]
-                        delta_velocity = [data.velocity.x - prev_data.velocity.x, data.velocity.y - prev_data.velocity.y, data.velocity.z - prev_data.velocity.z]
-                        position_displacement = np.linalg.norm(delta_translation)
-                        speed_delta = np.linalg.norm(delta_velocity)
+except Exception as e:
+    progress(e)
 
-                        # Pose jump is indicated when position changes abruptly. The behavior is not well documented yet (as of librealsense 2.34.0)
-                        jump_threshold = 0.1 # in meters, from trials and errors, should be relative to how frequent is the position data obtained (200Hz for the T265)
-                        jump_speed_threshold = 20.0 # in m/s from trials and errors, should be relative to how frequent is the velocity data obtained (200Hz for the T265)
-                        if (position_displacement > jump_threshold) or (speed_delta > jump_speed_threshold):
-                            send_msg_to_gcs('VISO jump detected')
-                            if position_displacement > jump_threshold:
-                                progress("Position jumped by: %s" % position_displacement)
-                            elif speed_delta > jump_speed_threshold:
-                                progress("Speed jumped by: %s" % speed_delta)
-                            increment_reset_counter()
-                        
-                    prev_data = data
+except:
+    send_msg_to_gcs('ERROR IN SCRIPT')  
+    progress("Unexpected error: %s" % sys.exc_info()[0])
 
-                    # Take offsets from body's center of gravity (or IMU) to camera's origin into account
-                    if body_offset_enabled == 1:
-                        H_body_camera = tf.euler_matrix(0, 0, 0, 'sxyz')
-                        H_body_camera[0][3] = body_offset_x
-                        H_body_camera[1][3] = body_offset_y
-                        H_body_camera[2][3] = body_offset_z
-                        H_camera_body = np.linalg.inv(H_body_camera)
-                        H_aeroRef_aeroBody = H_body_camera.dot(H_aeroRef_aeroBody.dot(H_camera_body))
-
-                    # Realign heading to face north using initial compass data
-                    if compass_enabled == 1:
-                        H_aeroRef_aeroBody = H_aeroRef_aeroBody.dot( tf.euler_matrix(0, 0, heading_north_yaw, 'sxyz'))
-
-                    # Show debug messages here
-                    if debug_enable == 1:
-                        os.system('clear') # This helps in displaying the messages to be more readable
-                        progress("DEBUG: Raw RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_T265Ref_T265body, 'sxyz')) * 180 / m.pi))
-                        progress("DEBUG: NED RPY[deg]: {}".format( np.array( tf.euler_from_matrix( H_aeroRef_aeroBody, 'sxyz')) * 180 / m.pi))
-                        progress("DEBUG: Raw pos xyz : {}".format( np.array( [data.translation.x, data.translation.y, data.translation.z])))
-                        progress("DEBUG: NED pos xyz : {}".format( np.array( tf.translation_from_matrix( H_aeroRef_aeroBody))))
-
-    except Exception as e:
-        progress(e)
-
-    except:
-        send_msg_to_gcs('ERROR IN SCRIPT')  
-        progress("Unexpected error: %s" % sys.exc_info()[0])
-
-    finally:
-        progress('Closing the script...')
-        # start a timer in case stopping everything nicely doesn't work.
-        signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
-        pipe.stop()
-        mavlink_thread_should_exit = True
-        mavlink_thread.join()
-        conn.close()
-        progress("INFO: Realsense pipeline and vehicle object closed.")
-        sys.exit(exit_code)
+finally:
+    progress('Closing the script...')
+    # start a timer in case stopping everything nicely doesn't work.
+    signal.setitimer(signal.ITIMER_REAL, 5)  # seconds...
+    pipe.stop()
+    mavlink_thread_should_exit = True
+    mavlink_thread.join()
+    conn.close()
+    progress("INFO: Realsense pipeline and vehicle object closed.")
+    sys.exit(exit_code)
