@@ -19,24 +19,32 @@ import threading
 # Force Quit
 import sys
 
+# T265
+# from t265_to_mavlink import *
+
 #-- Connect to the vehicle
 # print('Connecting Master Drone...')
-# vehicle_master = connect('udp:127.0.0.1:14571')
+# vehicle_slave = connect('udp:127.0.0.1:14571')
 
 # print('Connecting Slave Drone...')
 # vehicle_slave = connect('udp:127.0.0.1:14561')
 
-#-- Connecting to Follower
+#-- Connecting to Leader
 # slave_connection = '/dev/ttyUSB0'
-slave_connection = '/dev/ttyAMA0'
+slave_connection = 'udp:127.0.0.1:14571'
+# slave_connection = '/dev/ttyACM0'
 
-print('Connecting Slave Drone...')
-vehicle_slave = connect('slave_connection', source_system=2) # connect d2 to PX4_2
+print('Connecting Follower Drone...')
+vehicle_slave = connect(slave_connection, source_system=1) # connect d1 to PX4_1
+# vehicle_slave = conn
 
-#-- Set up connection to Leader
-leader_connection = 'udpout:127.0.0.1:14561'
+#-- Set up connection to Follower
+#follower_connection = 'udpin:127.0.0.1:14571'
 
-udpconn_to_d1 = mavutil.mavudp(leader_connection, source_system=2) # connect d1
+# udp_pipe_to_d2 = MAVConnection(follower_connection, source_system=1)
+#vehicle_slave._handler.pipe(udp_pipe_to_d2)
+#udp_pipe_to_d2.master.mav.srcComponent = 1
+#udp_pipe_to_d2.start() # start the pipe to DroneKit_2
 
 #-- Setup the commanded flying speed
 gnd_speed = 0.5 # [m/s]
@@ -59,28 +67,29 @@ vertical_tol = 0.05 # [m]
 #-- Define arm and takeoff. Still need to try whether use GPS or not. ONLY RUN WHEN INITIALIZE
 def arm_and_takeoff(altitude_top, altitude_bot):
 
-   # Check armable. Kata ka Zeke ga usah
+    # Check armable. Kata ka Zeke ga usah
     # while not vehicle_slave.is_armable:
-    #     print("Waiting for slave to be armable")
-    #     time.sleep(1)
+        # print("Waiting for master to be armable")
+        # time.sleep(1)
 
     print("Set mode to GUIDED")
     vehicle_slave.mode = VehicleMode("GUIDED")
     # vehicle_slave.armed = True
 
-    # while not vehicle_slave.armed: time.sleepa(1)
+    # while not vehicle_slave.armed: time.sleep(1)
 
     # Taking off
     print("Taking Off")
-    vehicle_slave.simple_takeoff(altitude_bot)
+    # vehicle_slave.simple_takeoff(altitude_top)
 
-    while True:
-        v_alt_slave = vehicle_slave.rangefinder.distance
-        print(">> Slave = %.1f m"%(v_alt_slave))
-        if (v_alt_slave >= altitude_bot - 0.3):
-            print("Target altitude reached")
-            break
-        time.sleep(1)
+    # while True:
+        # v_alt = vehicle_slave.rangefinder.distance   
+        # v_alt = vehicle_slave.location.global_relative_frame.alt
+        # print(">> Altitude: Master = %.1f m"%(v_alt))
+        # if (v_alt >= altitude_top - 0.3):
+            # print("Target altitude reached")
+            # break
+        # time.sleep(1)
 
  #-- Define the function for sending mavlink velocity command in body frame
 def set_velocity_body(target_vehicle, vx, vy, vz):
@@ -143,7 +152,7 @@ def condition_yaw(target_vehicle, heading, relative=True):
 #-- Get velicity for changing altitude
 def get_velocity_altitude(difference_altitude):
     """
-    Get velocity for changing altitude
+    Get velocity for changing altitude. NEED TO BE REWORKED, TOO MUCH OVERSHOOTING
     """
     if (difference_altitude != 0):
         if (abs(difference_altitude) >= vertical_dec):
@@ -161,26 +170,29 @@ def change_altitude(master_target_altitude, slave_target_altitude):
     print(">> Changing altitude")
 
     #-- Get current altitude
-    v_alt_slave = vehicle_slave.rangefinder.distance
+    # v_alt = vehicle_slave.rangefinder.distance
+    v_alt = vehicle_slave.location.global_relative_frame.alt
+
 
     reached = False
 
     #-- Set the vehicle velocity
     while(not reached):
-        print(">> Altitude: Slave = %.2f m"%(v_alt_slave))
-        print(">> Target altitude: Slave = %.2f m"%(slave_target_altitude))
+        print(">> Altitude: Master = %.2f m"%(v_alt))
+        print(">> Target altitude: Master = %.2f m"%(master_target_altitude))
 
-        slave_difference = v_alt_slave - slave_target_altitude
+        master_difference = v_alt - master_target_altitude
 
-        if (abs(slave_difference) <= vertical_tol):
+        if (abs(master_difference) <= vertical_tol):
             reached = True
 
-        slave_speed = get_velocity_altitude(slave_difference)
+        master_speed = get_velocity_altitude(master_difference)
 
-        print(">> Slave speed = %.2f m/s"%(slave_speed))
-        set_velocity_body(vehicle_slave, vx=0, vy=0, vz=slave_speed)
+        print(">> Master speed = %.2f m/s"%(master_speed))
+        set_velocity_body(vehicle_slave, vx=0, vy=0, vz=master_speed)
 
-        v_alt_slave = vehicle_slave.rangefinder.distance
+        # v_alt = vehicle_slave.rangefinder.distance
+        v_alt = vehicle_slave.location.global_relative_frame.alt
 
         time.sleep(0.1)
 
@@ -191,6 +203,8 @@ def get_speed(current_pos):
 
     Here, we have the decelerating distance (distance where the drone have to start decelerating), and we use 
     quadratic function to project the drone velocity based on the distance
+
+    NEED TO BE REWORKED, TOO MUCH OVERSHOOTING
     """
     # Check if current position is not less than decelerating distance
     if (current_pos != 0):
@@ -235,15 +249,17 @@ def gerakDroneEmergency(string):
     elif string == "LEFT":
         set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
     elif string == "FORWARD":
-        set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
+        set_velocity_body(vehicle_slave, gnd_speed, 0, 0)
     elif string == "BACKWARD":
-        set_velocity_body(vehicle_slave, 0, -gnd_speed, 0)
+        set_velocity_body(vehicle_slave, -gnd_speed, 0, 0)
 
 def landDrone():
     vehicle_slave.mode = VehicleMode("LAND")
 
 #-- detect wifi conenction (not internet) using socket
-wifi_ip = "192.168.88.61"
+# wifi_ip = "192.168.0.102"
+wifi_ip = "192.168.0.100"
+# wifi_ip = "192.168.0.1"
 
 def is_wifi():
     """
@@ -276,3 +292,5 @@ def wifi_stop():
     vehicle_slave.armed = False
 
     sys.exit(1)
+
+# landDrone()

@@ -1,9 +1,8 @@
 # First import the library
 import cv2
 from disNew import poseEstim
+import pyrealsense2 as rs
 from movementDrone_leader import *
-
-import threading
 
 def threshold(x,y):
 	if (abs(x) <= 5 and abs(y) <= 5):
@@ -68,7 +67,7 @@ def arucoFollower():
           currId = newId
 
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, video_capture, isNewId)
-        gerakDrone(x*0.01, -y*0.01)
+        gerakDrone2(x*0.01, -y*0.01)
         # gerakDrone(y*0.01, x*0.01)
 
       print("Selesai rute awal, memulai rute penurunan payload")
@@ -100,17 +99,12 @@ def arucoFollower():
 
     finally:
       print("Selesai")
-      landDrone()
       video_capture.release()
 
 if __name__ == "__main__":
-  check_wifi = threading.Thread(target=wifi_stop)
-  check_wifi.start()
+  wifi_thread = threading.Thread(target=wifi_stop)
+  wifi_thread.start()
 
-  try:
-    arm_and_takeoff(2,10)
-    arucoFollower()
-  except:
-     landDrone()
-  
-  check_wifi.join()
+  arm_and_takeoff(10, 5)
+
+  arucoFollower()

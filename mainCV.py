@@ -5,7 +5,7 @@ from movementDrone_leader import *
 # from dronewifi import *
 
 def threshold(x,y):
-	if (abs(x) <= 10 and abs(y) <= 10):
+	if (abs(x) <= 25 and abs(y) <= 25):
 		return True
 
 def changeId(idDistArr, currId):
@@ -27,8 +27,8 @@ def arucoFollower():
     currId = 0
 
     # Untuk testing, jangan lupa diganti dengan yang di bawah
-    lastId = 0
-    # lastId = 45
+    # lastId = 0
+    lastId = 5
 
     bannedId = []
 
@@ -76,7 +76,7 @@ def arucoFollower():
           currId = newId
 
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
-        gerakDrone(x*0.01, -y*0.01)
+        gerakDrone(x * 0.01, -y * 0.01)
 
       print("Selesai rute awal, memulai rute penurunan payload")
       print("Switching to final markers")
@@ -90,10 +90,12 @@ def arucoFollower():
       # currId = 46 # First id of special command 
       # lastIdSp = 49 # Last id of special command
  
-      change_altitude(3,2.5) # Naik untuk persiapan pelepasan payload
+      # change_altitude(2.5, 2) # Naik untuk persiapan pelepasan payload
+
       while (command != "UP"):
+        print("Now UP!")
         x, y, idDistArr, id, command = poseEstim(currId, bannedId, IdDistArr, streams, isNewId)
-        gerakDrone(x*0.01, -y*0.01)
+        gerakDrone(x * 0.01, -y * 0.01)
         
         # Cek threshold
         if threshold(x,y):
@@ -104,15 +106,14 @@ def arucoFollower():
           
           # jika id yang sekarang adalah id terakhir, maka commandnya hanya UP
           else :
-            change_altitude(2,3)
+            # change_altitude(2, 2.5)
             print("Up")
             time.sleep(2)
             command = "UP"
 
     finally:
       print("Dropping drone...")
-      change_altitude(0,0) # landing jika sudah selesai ataupun jika keyboard interrupt
-      landDrone()
+      landDrone() # landing jika sudah selesai ataupun jika keyboard interrupt
       print("Selesai")
       pipe.stop()
 

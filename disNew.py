@@ -14,36 +14,6 @@ commandDict = {
   '8': 'FORWARD',
   '9': 'FORWARD',
   '10': 'FORWARD',
-  '11' : 'RIGHT',
-  '12' : 'RIGHT',
-  '13' : 'RIGHT',
-  '14' : 'RIGHT',
-  '15' : 'RIGHT',
-  '16' : 'RIGHT',
-  '17' : 'RIGHT',
-  '18' : 'RIGHT',
-  '19' : 'RIGHT',
-  '20' : 'RIGHT',
-  '21' : 'LEFT',
-  '22' : 'LEFT',
-  '23' : 'LEFT',
-  '24' : 'LEFT',
-  '25' : 'LEFT',
-  '26' : 'LEFT',
-  '27' : 'LEFT',
-  '28' : 'LEFT',
-  '29' : 'LEFT',
-  '30' : 'LEFT',
-  '31' : 'BACKWARD',
-  '32' : 'BACKWARD',
-  '33' : 'BACKWARD',
-  '34' : 'BACKWARD',
-  '35' : 'BACKWARD',
-  '36' : 'BACKWARD',
-  '37' : 'BACKWARD',
-  '38' : 'BACKWARD',
-  '39' : 'BACKWARD',
-  '40' : 'BACKWARD',
     
     #   specCommandDict
   '100': 'LEFT', 
@@ -58,12 +28,12 @@ def poseEstim(currId, bannedId, IdDistArr, video_capture, isNewId):
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = video_capture.get(cv2.CAP_PROP_FPS)
-    camera_matrix = np.array([[1.13261607e+03, 0, 6.67508913e+02],
-                    [0, 1.12830971e+03, 1.81710864e+02],
-                    [0, 0, 1]])
-    dist_coeffs = np.array([[-0.52188313, 0.42932844, 0.01715741, -0.00725327, -0.33923855]])
+    camera_matrix = np.array([[578.92810113,   0,         348.69375095]
+    , [  0,         580.59503862, 187.37399863]
+    , [  0,           0,           1.        ]])
+    dist_coeffs = np.array([[-0.41518529,  0.27491043, -0.00658387, -0.00610845, -0.17400443]])
 
-    MARKER_SIZE = 28  # centimeters
+    MARKER_SIZE = 16.5  # centimeters
     marker_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_50) # Aruco type
     param_markers = aruco.DetectorParameters_create()
     
@@ -72,13 +42,15 @@ def poseEstim(currId, bannedId, IdDistArr, video_capture, isNewId):
         if not ret:
             break
 
+        gray = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2GRAY)
+
         marker_corners, marker_IDs, reject = aruco.detectMarkers(
-            frame_copy, marker_dict, parameters=param_markers
+            gray, marker_dict, parameters=param_markers
         )
         
         if marker_corners:
             # Getting tVec from estimatePoseSingleMarkers 
-            _, rvecs, tvecs = aruco.estimatePoseSingleMarkers(
+            _, tvecs, _ = aruco.estimatePoseSingleMarkers(
                 marker_corners, MARKER_SIZE, camera_matrix, dist_coeffs
             )
             total_markers = range(0, marker_IDs.size)
@@ -121,8 +93,6 @@ if __name__ == "__main__":
     currId = 0
     bannedId=[]
 
-    # for i in range (2,100):
-    #     print(i)
     video_capture = cv2.VideoCapture(1)
     IdDistArr = {}
 

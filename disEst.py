@@ -4,6 +4,7 @@ import pyrealsense2 as rs
 # Import OpenCV and numpy
 import cv2
 import numpy as np
+
 from cv2 import aruco
 
 commandDict = {
