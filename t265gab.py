@@ -14,6 +14,7 @@
 from disNew2 import *
 import cv2
 from movementDrone_leader import *
+from select import select
 
 # Set the path for IDLE
 import sys
@@ -49,8 +50,11 @@ def progress(string):
 #######################################
 
 # Default configurations for connection to the FCU
-# connection_string_default = '/dev/ttyACM0'
-connection_string_default = 'udp:127.0.0.1:14571'
+if (using_sitl):
+    connection_string_default = '/dev/ttyUSB0'
+else:
+    connection_string_default = 'udp:127.0.0.1:14561'
+
 connection_baudrate_default = 115200
 connection_timeout_sec_default = 5
 
@@ -583,6 +587,7 @@ send_msg_to_gcs('Sending vision messages to FCU')
 
 try:
     IdDistArr = {}
+    arm_and_takeoff(1, 2)
 
     # Retreive the stream and intrinsic properties for both cameras
     profiles = pipe.get_active_profile()
@@ -590,10 +595,10 @@ try:
         "right" : profiles.get_stream(rs.stream.fisheye, 2).as_video_stream_profile()}
     isNewId = False
 
-    currId = 0
+    currId = 39
 
     # Untuk testing, jangan lupa diganti dengan yang di bawah
-    lastId = 0
+    lastId = 39
     route = 1 # route 1 untuk rute normal, route 2 untuk rute penurunan payload
     start = False
 
@@ -691,10 +696,14 @@ try:
                     progress("DEBUG: NED pos xyz : {}".format( np.array( tf.translation_from_matrix( H_aeroRef_aeroBody))))
 
         if (not(start)):
-            start = True
-            print("a")
-            time.sleep(10) # Menunggu 5 detik sebelum melanjutkan program
-            print("b")
+            if select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):  # for Unix
+                user_input = sys.stdin.read(1)  # for Unix
+                start = True
+
+            # start = True
+            # print("a")
+            # time.sleep(2) # Menunggu 5 detik sebelum melanjutkan program
+            # print("b")
 
             # key = cv2.waitKeyEx(1)
             # if key != -1: # Check if a key was pressed
@@ -737,9 +746,9 @@ try:
                         print("Switching to final markers")
 
                         # untuk testing jangan lupa nanti diganti dengan yang dicomment di bawah
-                        currId = 1 # First id of special command 
-                        lastIdSp = 2 # Last id of special command
-                        # change_altitude(2.5,2) # Naik untuk persiapan pelepasan payload
+                        currId = 41 # First id of special command 
+                        lastIdSp = 42 # Last id of special command
+                        change_altitude(2.5,2) # Naik untuk persiapan pelepasan payload
 
                 else:
                 # Second loop from special dictionary command last special id
