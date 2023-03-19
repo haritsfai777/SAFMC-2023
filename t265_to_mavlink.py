@@ -47,7 +47,14 @@ def progress(string):
 
 # Default configurations for connection to the FCU
 # connection_string_default = '/dev/ttyACM0'
-connection_string_default = 'udp:127.0.0.1:14571'
+
+leader = True
+
+if (leader):
+    connection_string_default = 'udp:192.168.0.102:14560'
+else:
+    connection_string_default = 'udp:192.168.0.102:14570'
+
 connection_baudrate_default = 115200
 connection_timeout_sec_default = 5
 

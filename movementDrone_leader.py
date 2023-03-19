@@ -10,7 +10,7 @@ In Leader odroid:
 mavproxy.py --master=/dev/ttyACM0 --out udp:192.168.0.102:14560 --out udp:192.168.0.104:14550
 mavproxy.py --master=/dev/ttyACM0 --out udp:192.168.0.102:14570 --out udp:192.168.0.105:14550
 
-2. Run mavros in leader odroid
+2. Run t265_to_mavlink.py in both drone
 
 3. Run newMain.py in leader
 
@@ -73,7 +73,7 @@ if (with_follower):
 gnd_speed = 0.5 # [m/s]
 
 #-- Setup decelerating distance
-dec_dist = 2 # [m]
+dec_dist = 5 # [m]
 
 #-- Setup tolerating distance
 tol_dist = 0.075 # [m]
