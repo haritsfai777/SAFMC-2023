@@ -7,8 +7,8 @@ HOW TO RUN
 
 1. Make udp port in both leader and follow
 In Leader odroid:
-mavproxy.py --master tcp:/dev/ttyACM0 --out udp:127.0.0.1:14561 --out udp:10.2.109.42:14560
-mavproxy.py --master tcp:/dev/ttyACM1 --out udp:127.0.0.1:14571 --out udp:10.2.109.42:14570
+mavproxy.py --master=/dev/ttyACM0 --out udp:192.168.0.102:14560 --out udp:192.168.0.104:14550
+mavproxy.py --master=/dev/ttyACM0 --out udp:192.168.0.102:14570 --out udp:192.168.0.105:14550
 
 2. Run mavros in leader odroid
 
@@ -48,7 +48,7 @@ using_sitl = True
 
 #-- Connecting to Leader
 # master_connection = '/dev/ttyUSB0'
-master_connection = 'udp:127.0.0.1:14561'
+master_connection = 'udp:192.168.0.102:14560'
 # master_connection = '/dev/ttyACM0'
 
 print('Connecting Leader Drone...')
@@ -56,7 +56,7 @@ vehicle_master = connect(master_connection, source_system=1)
 # vehicle_master = conn
 
 if (with_follower):
-    slave_connection = 'udp:127.0.0.1:14571'
+    slave_connection = 'udp:192.168.0.102:14570'
 
     print('Connecting Follower Drone...')
     vehicle_slave = connect(slave_connection, source_system=1)
