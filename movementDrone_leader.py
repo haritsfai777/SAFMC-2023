@@ -47,17 +47,21 @@ with_follower = True
 using_sitl = True
 
 #-- Connecting to Leader
-# master_connection = '/dev/ttyUSB0'
-master_connection = 'udp:192.168.0.102:14560'
-# master_connection = '/dev/ttyACM0'
+if (using_sitl):
+    master_connection = 'udp:127.0.0.1:14561'
+
+    if (with_follower):
+        slave_connection = 'udp:127.0.0.1:14571'
+else:
+    master_connection = 'udp:192.168.0.102:14560'
+
+    if (with_follower):
+        slave_connection = 'udp:192.168.0.102:14570'
 
 print('Connecting Leader Drone...')
 vehicle_master = connect(master_connection, source_system=1)
-# vehicle_master = conn
 
 if (with_follower):
-    slave_connection = 'udp:192.168.0.102:14570'
-
     print('Connecting Follower Drone...')
     vehicle_slave = connect(slave_connection, source_system=1)
 
