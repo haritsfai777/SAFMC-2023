@@ -283,7 +283,7 @@ def change_altitude(master_target_altitude, slave_target_altitude):
             time.sleep(0.1)
         else:
             print(">> Altitude: Master = %.2f m. Slave = %.2f"%(v_alt, v_alt_slave))
-            print(">> Target altitude: Master = %.2f m"%(master_target_altitude, slave_target_altitude))
+            print(">> Target altitude: Master = %.2f m. Slave = %.2f"%(master_target_altitude, slave_target_altitude))
 
             master_difference = v_alt - master_target_altitude
             slave_difference = v_alt_slave - slave_target_altitude
