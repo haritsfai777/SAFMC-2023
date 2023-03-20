@@ -89,9 +89,21 @@ def poseEstim(currId, bannedId, IdDistArr, video_capture, isNewId):
                     frame_copy, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv2.LINE_AA
                 )
 
-                distance = np.sqrt(
-                    tvecs[i][0][2] ** 2 + tvecs[i][0][0] ** 2 + tvecs[i][0][1] ** 2
-                )
+                # Converting rvecs from degree to radian
+                rvecs = rvecs * np.pi/180
+                
+                # Creating rotation matrix from rvecs
+                R, _ = cv2.Rodrigues(rvecs)
+
+                # Calculate position using rotation matrix
+                pos = np.matmul(R, tvecs[i].T)
+
+                # Calculate distance from camera to marker
+                distance = np.sqrt(pos[0]**2 + pos[1]**2 + pos[2]**2)[0]
+
+                # distance = np.sqrt(
+                #     tvecs[i][0][2] ** 2 + tvecs[i][0][0] ** 2 + tvecs[i][0][1] ** 2
+                # )
                 
                 # if want to delete the key, just type del idDistArr[ids[i]]        
 
