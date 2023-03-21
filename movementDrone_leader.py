@@ -147,31 +147,55 @@ def arm_and_takeoff(altitude_top, altitude_bot):
                 time.sleep(1)
     else:
         # Check armable. Kata ka Zeke ga usah
-        # while not vehicle_master.is_armable:
-            # print("Waiting for master to be armable")
-            # time.sleep(1)
+        while not vehicle_master.is_armable:
+            print("Waiting for master to be armable")
+            time.sleep(1)
+
+        vehicle_master.armed = True
+        while not vehicle_master.armed: time.sleep(1)
+
+        if (with_follower):
+            while not vehicle_slave.is_armable:
+                print("Waiting for slave to be armable")
+                time.sleep(1)
+
+            vehicle_slave.armed = True
+            while not vehicle_slave.armed: time.sleep(1)
 
         print("Set mode to GUIDED")
         vehicle_master.mode = VehicleMode("GUIDED")
 
         if (with_follower):
             vehicle_slave.mode = VehicleMode("GUIDED")
-        # vehicle_master.armed = True
-
-        # while not vehicle_master.armed: time.sleep(1)
 
         # Taking off
         print("Taking Off")
-        # vehicle_master.simple_takeoff(altitude_top)
+        vehicle_master.simple_takeoff(altitude_top)
 
-        # while True:
-            # v_alt = vehicle_master.rangefinder.distance   
-            # v_alt = vehicle_master.location.global_relative_frame.alt
-            # print(">> Altitude: Master = %.1f m"%(v_alt))
-            # if (v_alt >= altitude_top - 0.3):
-                # print("Target altitude reached")
-                # break
-            # time.sleep(1)
+        if (with_follower):
+            vehicle_slave.simple_takeoff(altitude_bot)
+
+        while True:
+            v_alt = vehicle_master.location.global_relative_frame.alt
+
+            if (with_follower):
+                v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+
+                print(">> Altitude: Master = %.1f m. Slave = %.1f m."%(v_alt, v_alt_slave))
+
+                if (v_alt >= altitude_top - 0.3 and v_alt_slave >= altitude_bot - 0.3):
+                    print("Target altitude reached")
+                    break
+
+                time.sleep(1)
+            else:
+                print(">> Altitude: Master = %.1f m."%(v_alt))
+
+                if (v_alt >= altitude_top - 0.3):
+                    print("Target altitude reached")
+                    break
+
+                time.sleep(1)
 
  #-- Define the function for sending mavlink velocity command in body frame
 def set_velocity_body(target_vehicle, vx, vy, vz):
