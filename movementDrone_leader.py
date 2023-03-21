@@ -357,6 +357,84 @@ def change_altitude(master_target_altitude, slave_target_altitude):
 
             time.sleep(0.1)
 
+
+def change_relative_altitude(master_target_altitude, slave_target_altitude):
+    """
+    Change relative altitude with velocity vector and LocationGlobalRelative
+    master_target_altitude and slave_target_altitude are relative to the current altitude
+    possitive = lebih tinggi, negative = lebih rendah
+    """
+    print(">> Changing relative altitude")
+
+    #-- Get current altitude
+    if (using_sitl):
+        v_alt_init = vehicle_master.location.global_relative_frame.alt
+    else:
+        v_alt_init = vehicle_master.rangefinder.distance
+    
+    v_alt_rel = 0
+    v_alt = v_alt_init
+    
+    if (with_follower):
+        if (using_sitl):
+            v_alt_slave_init = vehicle_slave.location.global_relative_frame.alt
+        else:
+            v_alt_slave_init = vehicle_slave.rangefinder.distance
+    
+        v_alt_slave_rel = 0
+        v_alt_slave = v_alt_slave_init
+
+    reached = False
+
+    #-- Set the vehicle velocity
+    while(not reached):
+        if (not with_follower):
+            print(">> Altitude: Master = %.2f m"%(v_alt_init + v_alt_rel))
+            print(">> Target altitude: Master = %.2f m"%(v_alt_init + master_target_altitude))
+
+            master_difference = v_alt_rel - master_target_altitude
+
+            if (abs(master_difference) <= vertical_tol):
+                reached = True
+
+            master_speed = get_velocity_altitude(master_difference)
+
+            print(">> Master speed = %.2f m/s"%(master_speed))
+            set_velocity_body(vehicle_master, vx=0, vy=0, vz=master_speed)
+
+            if (using_sitl):
+                v_alt_rel = vehicle_master.location.global_relative_frame.alt - v_alt_init
+            else:
+                v_alt_rel = vehicle_master.rangefinder.distance - v_alt_init
+
+            time.sleep(0.1)
+        else:
+            print(">> Altitude: Master = %.2f m. Slave = %.2f"%(v_alt_init + v_alt_rel, v_alt_slave_init + v_alt_slave_rel))
+            print(">> Target altitude: Master = %.2f m. Slave = %.2f"%(master_target_altitude, slave_target_altitude))
+
+            master_difference = v_alt_rel - master_target_altitude
+            slave_difference = v_alt_slave_rel - slave_target_altitude
+
+            if (abs(master_difference) <= vertical_tol and abs(slave_difference) <= vertical_tol):
+                reached = True
+
+            master_speed = get_velocity_altitude(master_difference)
+            slave_speed = get_velocity_altitude(slave_difference)
+
+            print(">> Master speed = %.2f m/s. Slave speed = %.2f m/s"%(master_speed, slave_speed))
+            set_velocity_body(vehicle_master, vx=0, vy=0, vz=master_speed)
+            set_velocity_body(vehicle_slave, vx=0, vy=0, vz=slave_speed)
+
+            if (using_sitl):
+                v_alt_rel = vehicle_master.location.global_relative_frame.alt
+                v_alt_slave_rel = vehicle_slave.location.global_relative_frame.alt
+            else:
+                v_alt_rel = vehicle_master.rangefinder.distance - v_alt_init
+                v_alt_slave_rel = vehicle_slave.rangefinder.distance - v_alt_init
+
+            time.sleep(0.1)
+
+
 #-- Get velocity for x-y plane
 def get_speed(current_pos):
     """
