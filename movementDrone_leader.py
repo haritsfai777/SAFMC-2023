@@ -187,8 +187,8 @@ def arm_and_takeoff(altitude_top, altitude_bot):
                     print("Target altitude reached")
 
                     print("Set mode to LOITER")
-                    vehicle_master.mode = VehicleMode("GUIDED")
-                    vehicle_slave.mode = VehicleMode("GUIDED")
+                    vehicle_master.mode = VehicleMode("LOITER")
+                    vehicle_slave.mode = VehicleMode("LOITER")
 
                     break
 
@@ -200,8 +200,8 @@ def arm_and_takeoff(altitude_top, altitude_bot):
                     print("Target altitude reached")
 
                     print("Set mode to LOITER")
-                    vehicle_master.mode = VehicleMode("GUIDED")
-                    
+                    vehicle_master.mode = VehicleMode("LOITER")
+
                     break
 
                 time.sleep(1)
