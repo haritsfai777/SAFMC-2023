@@ -176,10 +176,10 @@ def arm_and_takeoff(altitude_top, altitude_bot):
             vehicle_slave.simple_takeoff(altitude_bot)
 
         while True:
-            v_alt = vehicle_master.location.global_relative_frame.alt
+            v_alt = vehicle_master.rangefinder.distance
 
             if (with_follower):
-                v_alt_slave = vehicle_slave.location.global_relative_frame.alt
+                v_alt_slave = vehicle_slave.rangefinder.distance
 
                 print(">> Altitude: Master = %.1f m. Slave = %.1f m."%(v_alt, v_alt_slave))
 
