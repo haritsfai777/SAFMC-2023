@@ -183,16 +183,25 @@ def arm_and_takeoff(altitude_top, altitude_bot):
 
                 print(">> Altitude: Master = %.1f m. Slave = %.1f m."%(v_alt, v_alt_slave))
 
-                if (v_alt >= altitude_top - 0.3 and v_alt_slave >= altitude_bot - 0.3):
+                if (v_alt >= altitude_top - 0.5 and v_alt_slave >= altitude_bot - 0.5):
                     print("Target altitude reached")
+
+                    print("Set mode to LOITER")
+                    vehicle_master.mode = VehicleMode("GUIDED")
+                    vehicle_slave.mode = VehicleMode("GUIDED")
+
                     break
 
                 time.sleep(1)
             else:
                 print(">> Altitude: Master = %.1f m."%(v_alt))
 
-                if (v_alt >= altitude_top - 0.3):
+                if (v_alt >= altitude_top - 0.5):
                     print("Target altitude reached")
+
+                    print("Set mode to LOITER")
+                    vehicle_master.mode = VehicleMode("GUIDED")
+                    
                     break
 
                 time.sleep(1)
