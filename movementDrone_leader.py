@@ -426,11 +426,11 @@ def change_relative_altitude(master_target_altitude, slave_target_altitude):
             set_velocity_body(vehicle_slave, vx=0, vy=0, vz=slave_speed)
 
             if (using_sitl):
-                v_alt_rel = vehicle_master.location.global_relative_frame.alt
-                v_alt_slave_rel = vehicle_slave.location.global_relative_frame.alt
+                v_alt_rel = vehicle_master.location.global_relative_frame.alt - v_alt_init
+                v_alt_slave_rel = vehicle_slave.location.global_relative_frame.alt - v_alt_slave_init
             else:
                 v_alt_rel = vehicle_master.rangefinder.distance - v_alt_init
-                v_alt_slave_rel = vehicle_slave.rangefinder.distance - v_alt_init
+                v_alt_slave_rel = vehicle_slave.rangefinder.distance - v_alt_slave_init
 
             time.sleep(0.1)
 
