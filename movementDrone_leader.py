@@ -43,7 +43,7 @@ import sys
 # print('Connecting Slave Drone...')
 # vehicle_slave = connect('udp:127.0.0.1:14561')
 
-with_follower = True
+with_follower = False
 using_sitl = True
 
 #-- Connecting to Leader
@@ -357,7 +357,6 @@ def change_altitude(master_target_altitude, slave_target_altitude):
 
             time.sleep(0.1)
 
-
 def change_relative_altitude(master_target_altitude, slave_target_altitude):
     """
     Change relative altitude with velocity vector and LocationGlobalRelative
@@ -516,8 +515,8 @@ def landDrone():
         vehicle_slave.mode = VehicleMode("LAND")
 
 #-- detect wifi conenction (not internet) using socket
-# wifi_ip = "192.168.0.102"
-wifi_ip = "192.168.0.100"
+wifi_ip = "192.168.0.102"
+# wifi_ip = "192.168.1.35"
 # wifi_ip = "192.168.0.1"
 
 def is_wifi():
@@ -533,6 +532,18 @@ def is_wifi():
     except:
         return False
 
+import subprocess
+
+def is_wifi_odroid():
+    # Run the iwconfig command and capture the output
+    output = subprocess.check_output(['iwconfig', 'wlan0'])
+
+    # Check if the connection is active or not
+    if b'Not-Associated' in output:
+        return False
+    else:
+        return True
+
 #Wifi link cutoff emergency stop
 def wifi_stop():
     """
@@ -540,15 +551,34 @@ def wifi_stop():
     """
 
     # Check wifi connection
-    while is_wifi():
+    while is_wifi_2():
+        time.sleep(1)
+
         continue
-        # print("Connected")
     
     print("Disconnected")
 
-    # Disarming the vehicle
-    print("Disarming the vehicle")
+    # Returning to launch
+    vehicle_master.mode = VehicleMode("LAND")
+
+    # vehicle_master.close()
+    # vehicle_master.channels.overrides['6'] = 2000
+    # vehicle_master.channels.overrides['3'] = -1
+
+    if (with_follower):
+        vehicle_slave.mode = VehicleMode("LAND")
+
+        # vehicle_slave.close()
+        # vehicle_slave.channels.overrides['6'] = 2000
+        # vehicle_slave.channels.overrides['3'] = -1
+
+    time.sleep(5)
+
+    # print("Disarming the vehicle")
     vehicle_master.armed = False
+
+    if (with_follower):
+        vehicle_slave.armed = False
 
     sys.exit(1)
 
@@ -559,7 +589,7 @@ if __name__ == '__main__':
     
     arm_and_takeoff(2, 1.5)
 
-    for i in range(100, 0, -2):
+    for i in range(299, 0, -2):
         print(f"x, y = {i**2 / 10000}, {i**2 / 40000}")
 
         gerakDrone(i**2 / 10000, i**2  / 40000)
@@ -572,6 +602,13 @@ if __name__ == '__main__':
         gerakDrone(0, i**2  / 400)
 
         time.sleep(0.1)
+    
+    for i in range(299, 0, -2):
+        print(f"x, y = {-i**2 / 10000}, {i**2 / 40000}")
+
+        gerakDrone(-i**2 / 10000, i**2  / 40000)
+
+        time.sleep(0.1)
 
     for i in range(100, 0, -2):
         print(f"x, y = {i**2 / 10000}, {10 - i**2 / 10000}")
@@ -581,9 +618,9 @@ if __name__ == '__main__':
         time.sleep(0.1)
     
     for i in range(100, 0, -2):
-        print(f"x, y = {0 * i**2 / 10000}, {10 - i**2 / 10000}")
+        print(f"x, y = {0}, {10 - i**2 / 10000}")
 
-        gerakDrone(0 * i**2 / 10000, 10 - i**2 / 10000)
+        gerakDrone(0, 10 - i**2 / 10000)
 
         time.sleep(0.1)
 
